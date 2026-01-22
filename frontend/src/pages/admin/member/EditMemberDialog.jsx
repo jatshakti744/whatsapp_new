@@ -1,0 +1,52 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import ReusableForm from "@/extraComponents/ReusableForm";
+import * as Yup from "yup";
+
+const EditMemberDialog = ({ open, setOpen, member, onSubmit }) => {
+  if (!member) return null;
+
+  const initialValues = {
+    FullName: member.FullName || "",
+    UserName: member.UserName || "",
+    PhoneNo: member.PhoneNo || "",
+    Email: member.Email || "",
+  };
+
+  const validationSchema = Yup.object({
+    FullName: Yup.string().required("Full name required"),
+    PhoneNo: Yup.string().required("Phone required"),
+    Email: Yup.string().email("Invalid email").required("Email required"),
+  });
+
+  const fields = [
+    { name: "FullName", label: "Full Name" },
+    // { name: "UserName", label: "Username", disabled: true },
+    { name: "PhoneNo", label: "Phone" },
+    { name: "Email", label: "Email" },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Edit Member</DialogTitle>
+        </DialogHeader>
+
+        <ReusableForm
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={onSubmit}
+          fields={fields}
+          submitText="Update Member"
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default EditMemberDialog;

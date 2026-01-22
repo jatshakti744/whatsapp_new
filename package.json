@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "react-data-table-component-extensions": "^1.6.0",
+    "react-hot-toast": "^2.6.0",
+    "socket.io-client": "^4.8.3"
+  }
+}
