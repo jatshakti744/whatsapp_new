@@ -31,9 +31,8 @@ import { Search, Plus, MoreHorizontal, Edit, UserX, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const AllMembers = () => {
-  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
-  const id = localStorage.getItem("id");
+  const id = localStorage.getItem("uid");
   const [open, setOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -42,63 +41,6 @@ const AllMembers = () => {
   const [memberDetail, setMemberDetail] = useState(null);
   const [memberList, setMemberList] = useState([]);
   const navigate = useNavigate();
-
-  const mockMembers = [
-    {
-      id: 1,
-      name: "Alice Cooper",
-      email: "alice@company.com",
-      role: "Member",
-      status: "active",
-      clients: 24,
-      messages: 342,
-    },
-    {
-      id: 2,
-      name: "Bob Martin",
-      email: "bob@company.com",
-      role: "Member",
-      status: "active",
-      clients: 18,
-      messages: 256,
-    },
-    {
-      id: 3,
-      name: "Carol White",
-      email: "carol@company.com",
-      role: "Member",
-      status: "on_leave",
-      clients: 12,
-      messages: 189,
-    },
-    {
-      id: 4,
-      name: "David Lee",
-      email: "david@company.com",
-      role: "Member",
-      status: "inactive",
-      clients: 0,
-      messages: 45,
-    },
-    {
-      id: 5,
-      name: "Emma Wilson",
-      email: "emma@company.com",
-      role: "Admin",
-      status: "active",
-      clients: 8,
-      messages: 567,
-    },
-    {
-      id: 6,
-      name: "Frank Johnson",
-      email: "frank@company.com",
-      role: "Member",
-      status: "active",
-      clients: 31,
-      messages: 423,
-    },
-  ];
 
   const handleSubmit = async (values, { resetForm }) => {
     try {
@@ -261,69 +203,69 @@ const AllMembers = () => {
       name: "Phone",
       selector: (row) => row.PhoneNo,
     },
-    // {
-    //   name: "Status",
-    //   cell: (row) => (
-    //     <Badge variant={row.ActiveStatus === 1 ? "default" : "secondary"}>
-    //       {row.ActiveStatus === 1 ? "Active" : "Inactive"}
-    //     </Badge>
-    //   ),
-    // },
+    {
+      name: "Status",
+      cell: (row) => (
+        <Badge variant={row.ActiveStatus === 1 ? "default" : "secondary"}>
+          {row.ActiveStatus === 1 ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
 
-    // {
-    //   name: "Actions",
-    //   cell: (row) => (
-    //     <DropdownMenu>
-    //       <DropdownMenuTrigger asChild>
-    //         <Button variant="ghost" size="icon">
-    //           <MoreHorizontal className="w-4 h-4" />
-    //         </Button>
-    //       </DropdownMenuTrigger>
-    //       <DropdownMenuContent align="end">
-    //         <DropdownMenuItem onClick={() => openEditDialog(row)}>
-    //           Edit
-    //         </DropdownMenuItem>
+    {
+      name: "Actions",
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => openEditDialog(row)}>
+              Edit
+            </DropdownMenuItem>
 
-    //         <DropdownMenuItem onClick={() => handleViewDetails(row)}>
-    //           {/* <Users className="w-4 h-4 mr-2" /> */}
-    //           View Details
-    //         </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleViewDetails(row)}>
+              {/* <Users className="w-4 h-4 mr-2" /> */}
+              View Details
+            </DropdownMenuItem>
 
-    //         <DropdownMenuItem className="">
-    //           <ConfirmAction
-    //             title="Update Status?"
-    //             description="are you sure do you want change the status of member."
-    //             confirmText="update"
-    //             type="warning"
-    //             onConfirm={() => handleStatusChange(row)}
-    //           >
-    //             Change Status
-    //           </ConfirmAction>
-    //         </DropdownMenuItem>
-    //         <DropdownMenuItem className="text-destructive">
-    //           <ConfirmAction
-    //             title="Delete Client?"
-    //             description="This action cannot be undone."
-    //             confirmText="Delete"
-    //             type="warning"
-    //             onConfirm={() => handleDelete(row)}
-    //           >
-    //             Delete
-    //           </ConfirmAction>
-    //         </DropdownMenuItem>
-    //         <DropdownMenuItem
-    //           onClick={() => {
-    //             navigate("/dashboard/managepermission", {
-    //               state: { user: row },
-    //             });
-    //           }}
-    //         >
-    //           Manage Permission
-    //         </DropdownMenuItem>
-    //       </DropdownMenuContent>
-    //     </DropdownMenu>
-    //   ),
-    // },
+            <DropdownMenuItem className="">
+              <ConfirmAction
+                title="Update Status?"
+                description="are you sure do you want change the status of member."
+                confirmText="update"
+                type="warning"
+                onConfirm={() => handleStatusChange(row)}
+              >
+                Change Status
+              </ConfirmAction>
+            </DropdownMenuItem>
+            {/* <DropdownMenuItem className="text-destructive">
+              <ConfirmAction
+                title="Delete Client?"
+                description="This action cannot be undone."
+                confirmText="Delete"
+                type="warning"
+                onConfirm={() => handleDelete(row)}
+              >
+                Delete
+              </ConfirmAction>
+            </DropdownMenuItem> */}
+            {/* <DropdownMenuItem
+              onClick={() => {
+                navigate("/dashboard/managepermission", {
+                  state: { user: row },
+                });
+              }}
+            >
+              Manage Permission
+            </DropdownMenuItem> */}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
   ];
 
   return (
@@ -331,34 +273,11 @@ const AllMembers = () => {
       <div className="flex h-screen bg-background">
         <div className="flex-1 flex flex-col overflow-hidden">
           <main className="flex-1 overflow-auto p-6">
-            {/* Stats */}
-            {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="bg-card rounded-xl p-4 shadow-soft">
-                <p className="text-sm text-muted-foreground">Total Members</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {mockMembers.length}
-                </p>
-              </div>
-              <div className="bg-card rounded-xl p-4 shadow-soft">
-                <p className="text-sm text-muted-foreground">Active</p>
-                <p className="text-2xl font-bold text-success">
-                  {mockMembers.filter((m) => m.status === "active").length}
-                </p>
-              </div>
-              <div className="bg-card rounded-xl p-4 shadow-soft">
-                <p className="text-sm text-muted-foreground">On Leave</p>
-                <p className="text-2xl font-bold text-warning">
-                  {mockMembers.filter((m) => m.status === "on_leave").length}
-                </p>
-              </div>
-            </div> */}
-
-            {/* Actions Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 mb-6">
-              {/* <Button onClick={() => setAddOpen(true)}>
+              <Button onClick={() => setAddOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Member
-              </Button> */}
+              </Button>
             </div>
             <div className="bg-card rounded-xl shadow-soft p-4">
               <ReusableDataTable

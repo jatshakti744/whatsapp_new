@@ -91,7 +91,7 @@ export async function UpdateMemberStatus(id, status) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
   return res.data;
@@ -109,7 +109,7 @@ export async function ClientList(data) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response.data;
@@ -131,7 +131,7 @@ export async function AddClient(data) {
     return response.data;
   } catch (error) {
     console.log("Error adding client:", error.response || error);
-    return error;
+    return error.response?.data;
   }
 }
 
@@ -164,7 +164,7 @@ export async function EditClient(data) {
     return response.data;
   } catch (error) {
     console.log("Error adding client:", error.response || error);
-    throw error;
+    return error.response?.data;
   }
 }
 
@@ -193,7 +193,7 @@ export async function GetUserDetails(token, userId) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -211,7 +211,7 @@ export async function DeleteClient(id, add_by) {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
 
   return res.data;
@@ -228,7 +228,7 @@ export async function UpdateClientStatus(id, status, add_by) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
   return res.data;
@@ -244,7 +244,7 @@ export async function UpdateMyProfile(token, data) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -278,7 +278,7 @@ export async function UpdateBasicSettings(token, data) {
           Authorization: `Bearer ${token}`,
           // "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -298,7 +298,7 @@ export async function ChangePassword(data) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -317,7 +317,7 @@ export async function UpdatePermission(token, id, data) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -350,7 +350,7 @@ export async function ClientDeleteListWithFilters(token) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -369,7 +369,7 @@ export async function ClientWithFiltersExcle(token, data) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -388,7 +388,7 @@ export async function ChangeClientOwner(token, data) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -400,14 +400,14 @@ export async function ChangeClientOwner(token, data) {
 export async function GetCRMCContactWithFilter(token, data) {
   try {
     const response = await axios.post(
-      `${config.base_url}user/getcrmcontactwithfilter`,
+      `${config.base_url}user/getallclients`,
       data,
       {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -426,7 +426,7 @@ export async function MSGSend(token, formData) {
           Authorization: `Bearer ${token}`,
           // "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -444,7 +444,7 @@ export async function GetChatHistoryByPhone(token, phoneno, crm_user_id) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -456,7 +456,7 @@ export async function GetChatHistoryByPhone(token, phoneno, crm_user_id) {
 export async function GetLatestChat(token, crm_user_id, search = "") {
   try {
     const response = await axios.get(
-      `${config.base_url}whatsapp/getchatuserlist`,
+      `${config.base_url}whatsapp/getchatuserlistfromclient`,
       {
         params: {
           crm_user_id,
@@ -466,7 +466,7 @@ export async function GetLatestChat(token, crm_user_id, search = "") {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response?.data;
@@ -479,14 +479,14 @@ export async function GetLatestChat(token, crm_user_id, search = "") {
 export async function GetUnassignContact(token, payload) {
   try {
     const response = await axios.post(
-      `${config.base_url}user/getcrmcontactwithfilterunassign`,
+      `${config.base_url}user/getcrmcontactwithfilterunassignwithclient`,
       payload,
       {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response?.data;
@@ -499,14 +499,14 @@ export async function GetUnassignContact(token, payload) {
 export async function GetUnassignContactDownload(token, payload) {
   try {
     const response = await axios.post(
-      `${config.base_url}user/getcrmcontactwithfilterunassignall`,
+      `${config.base_url}user/getcrmcontactwithfilterunassignallwithclient`,
       payload,
       {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response?.data;
@@ -541,7 +541,7 @@ export async function StatusChange(data, token) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -559,7 +559,7 @@ export async function DeleteTemplate(id, token) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -578,7 +578,7 @@ export async function AddTemplateApi(data, token) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -597,7 +597,7 @@ export async function EditTemplateApi(data) {
           Authorization: `Bearer ${data.token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -615,7 +615,7 @@ export async function GetTemplateById(id, token) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -633,7 +633,7 @@ export async function GetActiveTemplateList(token) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
@@ -642,9 +642,7 @@ export async function GetActiveTemplateList(token) {
   }
 }
 
-
-
-export async function SendBulkTemplate (token, payload) {
+export async function SendBulkTemplate(token, payload) {
   try {
     const response = await axios.post(
       `${config.base_url}whatsapp/sendbluk`,
@@ -654,11 +652,11 @@ export async function SendBulkTemplate (token, payload) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response?.data;
   } catch (error) {
     console.log("Error while sending bulk template", error);
-    return error;
+    return error.response?.data;
   }
 }

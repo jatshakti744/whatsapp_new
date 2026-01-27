@@ -59,7 +59,7 @@ const Auth = () => {
 
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("token", data.token);
-      localStorage.setItem("id", data.id);
+      localStorage.setItem("uid", data.id);
       localStorage.setItem("tokenjwt", data.tokenjwt);
       localStorage.setItem("phoneno", data.PhoneNo);
       localStorage.setItem("email", data.Email);
