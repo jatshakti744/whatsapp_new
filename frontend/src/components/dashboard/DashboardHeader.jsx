@@ -1,13 +1,9 @@
-import { Bell, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,27 +12,20 @@ import { useUser } from "@/context/UserContext";
 const DashboardHeader = ({ title, subtitle }) => {
   const { isAdmin, logout } = useUser();
   const navigate = useNavigate();
-    const handleLogout = () => {
+  const handleLogout = () => {
     localStorage.clear();
-    window.location.href = "https://crmplus.in/crm";
+    navigate("/");
   };
 
-  // const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-  // const userName =
-  //   typeof user.name === "string" && user.name.trim().length > 0
-  //     ? user.name.trim()
-  //     : "User";
-
-  const userName=localStorage.getItem("name");
+  const userName = localStorage.getItem("name");
 
   const userInitials = userName
-    .split(" ")
-    .filter(Boolean) // extra spaces remove
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+    ?.split(" ")
+    ?.filter(Boolean)
+    ?.map((n) => n[0])
+    ?.join("")
+    ?.toUpperCase()
+    ?.slice(0, 2);
 
   return (
     <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border/50 flex items-center justify-between px-6 shadow-sm">
@@ -50,29 +39,6 @@ const DashboardHeader = ({ title, subtitle }) => {
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Search */}
-        {/* <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-64 pl-10 bg-muted/50 border-border/50 focus:bg-background focus:border-primary/50 transition-colors"
-          />
-        </div> */}
-
-        {/* Notifications */}
-        {/* <Button
-          variant="ghost"
-          size="icon"
-          className="relative hover:bg-muted/50 transition-colors"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-to-br from-destructive to-destructive/80 text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center shadow-medium animate-pulse-soft">
-            3
-          </span>
-        </Button> */}
-
-        {/* Profile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -89,21 +55,12 @@ const DashboardHeader = ({ title, subtitle }) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            {/* <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => navigate("/dashboard/basicsetting")}
+              className="text-destructive"
+              onClick={() => handleLogout()}
             >
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator /> */}
-            <DropdownMenuItem className="text-destructive"    onClick={() =>handleLogout()} >
               Sign out
-            </DropdownMenuItem> 
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

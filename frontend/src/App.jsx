@@ -15,6 +15,7 @@ import Redirect from "./pages/RedirectPage";
 import Dashboard from "./pages/admin/dashboard/Dashboard";
 import AllChats from "./pages/admin/chats/AllChats";
 import AllClients from "./pages/admin/clients/AllClients";
+import AddClientDialog from "./pages/admin/clients/AddClientDialog";
 import ChatListItem from "./pages/admin/chats/ChatListItem";
 import AllMembers from "./pages/admin/member/AllMembers";
 import AddMember from "./pages/admin/member/AddMember";
@@ -52,7 +53,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/redirect" element={<Redirect />} />
-    {/* <Route path="/" element={<Auth />} /> */}
+    <Route path="/" element={<Auth />} />
     <Route path="/forgot" element={<ForgotPassword />} />
 
     {/* Admin */}
@@ -175,6 +176,15 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute requireAdmin>
           <Template />
+        </ProtectedRoute>
+      }
+    />
+
+    <Route
+      path="/dashboard/add-client"
+      element={
+        <ProtectedRoute requireAdmin>
+          <AddClientDialog />
         </ProtectedRoute>
       }
     />

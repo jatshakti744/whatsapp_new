@@ -65,7 +65,7 @@ const DashboardSidebar = () => {
       const res = await GetLatestChat(
         user.token,
         isAdmin ? 1 : user.crm_user_id,
-        search
+        search,
       );
 
       if (res?.status) {
@@ -100,7 +100,8 @@ const DashboardSidebar = () => {
         setChatUsers((prev) => {
           const updated = [...prev];
           const chatIndex = updated.findIndex(
-            (c) => data.phone && c.phone.endsWith(data.phone.replace(/^91/, ""))
+            (c) =>
+              data.phone && c.phone.endsWith(data.phone.replace(/^91/, "")),
           );
 
           if (chatIndex !== -1) {
@@ -152,14 +153,14 @@ const DashboardSidebar = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "https://crmplus.in/crm";
-  };
+  // const handleLogout = () => {
+  //   localStorage.clear();
+  //   window.location.href = "https://crmplus.in/crm";
+  // };
 
   const openChat = (chat) => {
     setChatUsers((prev) =>
-      prev.map((c) => (c.phone === chat.phone ? { ...c, unreadCount: 0 } : c))
+      prev.map((c) => (c.phone === chat.phone ? { ...c, unreadCount: 0 } : c)),
     );
 
     const phoneNumber = chat.phone.replace(/^91/, "");
@@ -181,7 +182,7 @@ const DashboardSidebar = () => {
     return chatUsers.filter(
       (chat) =>
         chat.phone.toLowerCase().includes(query) ||
-        chat.lastMessage?.toLowerCase().includes(query)
+        chat.lastMessage?.toLowerCase().includes(query),
     );
   }, [chatUsers, searchQuery]);
 
@@ -198,7 +199,7 @@ const DashboardSidebar = () => {
     const startOfToday = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
     );
 
     const startOfYesterday = new Date(startOfToday);
@@ -292,28 +293,29 @@ const DashboardSidebar = () => {
     <aside
       className={cn(
         "h-screen bg-green-200 flex flex-col transition-all duration-300 border-r",
-        collapsed ? "w-16" : "w-72"
+        collapsed ? "w-16" : "w-72",
       )}
     >
       <div className="h-16 flex items-center justify-between px-4 border-b">
         {!collapsed && (
           <div className="flex items-center gap-3">
-  {/* Logo */}
-  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white">
-    <img
-      className="w-6 h-6 object-contain"
-      src="/assets/logo.jpeg"
-      alt="Logo"
-    />
-  </div>
+            {/* Logo */}
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white">
+              <img
+                className="w-6 h-6 object-contain"
+                src="/assets/logo.jpeg"
+                alt="Logo"
+              />
+            </div>
 
-  {/* Company Name */}
-  <div className="flex flex-col leading-tight">
-    <span className="font-bold text-lg text-gray-900">Infinix Infotech</span>
-    <span className="text-sm text-gray-600">Private Limited</span>
-  </div>
-</div>
-
+            {/* Company Name */}
+            <div className="flex flex-col leading-tight">
+              <span className="font-bold text-lg text-gray-900">
+                Infinix Infotech
+              </span>
+              <span className="text-sm text-gray-600">Private Limited</span>
+            </div>
+          </div>
         )}
         <Button
           variant="ghost"
@@ -335,7 +337,7 @@ const DashboardSidebar = () => {
                 "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
                 isActive
                   ? "bg-green-600 text-white"
-                  : "text-green-800 hover:bg-green-100"
+                  : "text-green-800 hover:bg-green-100",
               )}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -397,14 +399,14 @@ const DashboardSidebar = () => {
                         alertType === "red"
                           ? "bg-red-100 border-l-4 border-red-500"
                           : alertType === "yellow"
-                          ? "bg-yellow-100 border-l-4 border-yellow-500"
-                          : "",
+                            ? "bg-yellow-100 border-l-4 border-yellow-500"
+                            : "",
 
                         location.pathname.includes("whatsapp") &&
                           location.state?.client?.mobile ===
                             chat.phone.replace(/^91/, "")
                           ? "bg-green-50 border-l-4 border-green-600"
-                          : ""
+                          : "",
                       )}
                     >
                       <div className="w-8 h-8 text-sm rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
@@ -436,12 +438,12 @@ const DashboardSidebar = () => {
                             {chat.message_type === "image"
                               ? "📷 Photo"
                               : chat.message_type === "video"
-                              ? "🎥 Video"
-                              : chat.message_type === "document"
-                              ? "📄 Document"
-                              : // : chat.message_type === "template"
-                                // ? "📋 Template"
-                                chat.lastMessage || "No message"}
+                                ? "🎥 Video"
+                                : chat.message_type === "document"
+                                  ? "📄 Document"
+                                  : // : chat.message_type === "template"
+                                    // ? "📋 Template"
+                                    chat.lastMessage || "No message"}
                           </p>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -455,7 +457,7 @@ const DashboardSidebar = () => {
                                   "w-2 h-2 rounded-full",
                                   alertType === "red"
                                     ? "bg-red-600"
-                                    : "bg-yellow-500"
+                                    : "bg-yellow-500",
                                 )}
                               />
                             )}
@@ -482,7 +484,7 @@ const DashboardSidebar = () => {
         </div>
       )}
 
-      <div className="p-2 border-t bg-green-50">
+      {/* <div className="p-2 border-t bg-green-50">
         <Button
           variant="ghost"
           onClick={handleLogout}
@@ -491,7 +493,7 @@ const DashboardSidebar = () => {
           <LogOut className="w-5 h-5" />
           {!collapsed && <span className="ml-3">Go to CRM</span>}
         </Button>
-      </div>
+      </div> */}
     </aside>
   );
 };

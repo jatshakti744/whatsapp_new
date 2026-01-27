@@ -6,6 +6,7 @@ import {
   GetCRMCContactWithFilter,
   GetActiveTemplateList,
   SendBulkTemplate,
+  AddClient,
 } from "../../../services/AdminServices";
 import { useUser } from "@/context/UserContext";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +15,6 @@ import { toast } from "sonner";
 const AllClients = () => {
   const { token } = useUser();
   const tokens = localStorage.getItem("tokenjwt");
-  console.log("UI TOKEN =>", token);
   const owner_id = localStorage.getItem("uid");
   const navigate = useNavigate();
   const [data, setData] = useState([]);
@@ -208,7 +208,14 @@ const AllClients = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader title="My Clients" />
 
-        <div className="mb-4 flex justify-end p-4">
+        <div className="mb-4 flex justify-end p-4 ">
+          <button
+           type="button"
+            onClick={() => navigate("/dashboard/add-client")}
+            className="px-4 py-2 bg-primary text-white rounded disabled:opacity-50"
+          >
+            Add Client
+          </button>
           <button
             disabled={selectedRows.length === 0}
             onClick={() => setTemplateModalOpen(true)}
