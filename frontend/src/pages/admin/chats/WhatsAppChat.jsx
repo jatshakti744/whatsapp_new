@@ -117,6 +117,10 @@ const WhatsappChat = () => {
   const { state } = useLocation();
   const client = state?.client;
 
+console.log("CLIENT =>", client);
+console.log("PHONE =>", client?.PhoneNo);
+
+
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
@@ -164,7 +168,7 @@ const WhatsappChat = () => {
   };
 
   const fetchHistory = async (skipIfFetching = false) => {
-    if (!client?.mobile) return;
+    if (!client?.PhoneNo) return;
 
     if (skipIfFetching && isFetchingRef.current) return;
 
@@ -172,7 +176,7 @@ const WhatsappChat = () => {
     setLoading(true);
 
     try {
-      const res = await GetChatHistoryByPhone(token, client.mobile, sender_id);
+      const res = await GetChatHistoryByPhone(token, client.PhoneNo, sender_id);
       setMessages(res.data || []);
     } catch (err) {
       console.error("❌ Fetch history error:", err);
@@ -189,7 +193,7 @@ const WhatsappChat = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (!client?.mobile) return;
+    if (!client?.PhoneNo) return;
 
     fetchHistory();
 
@@ -204,7 +208,7 @@ const WhatsappChat = () => {
 
       if (!data) return;
 
-      if (data.phone?.endsWith(client.mobile)) {
+      if (data.phone?.endsWith(client.PhoneNo)) {
         if (data.type === "whatsapp_chat") {
           console.log("📨 New chat message received");
           fetchHistory(true);
@@ -252,7 +256,7 @@ const WhatsappChat = () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [client?.mobile, token, sender_id]);
+  }, [client?.PhoneNo, token, sender_id]);
 
   const sendMessage = async () => {
     if (!text && !file) return;
@@ -260,9 +264,9 @@ const WhatsappChat = () => {
     setSending(true);
 
     try {
-      const phoneNumber = client.mobile.startsWith("91")
-        ? client.mobile
-        : `91${client.mobile}`;
+      const phoneNumber = client.PhoneNo.startsWith("91")
+        ? client.PhoneNo
+        : `91${client.PhoneNo}`;
 
       const formData = new FormData();
       formData.append("phone", phoneNumber);
@@ -320,9 +324,9 @@ const WhatsappChat = () => {
     setSending(true);
 
     try {
-      const phoneNumber = client.mobile.startsWith("91")
-        ? client.mobile
-        : `91${client.mobile}`;
+      const phoneNumber = client.PhoneNo.startsWith("91")
+        ? client.PhoneNo
+        : `91${client.PhoneNo}`;
 
       const formData = new FormData();
       formData.append("phone", phoneNumber);
@@ -594,7 +598,7 @@ const WhatsappChat = () => {
       <div className="flex-1 flex flex-col">
         <DashboardHeader
           title={`${client?.fname || ""} ${client?.lname || ""}`}
-          subtitle={`+91${client?.mobile}`}
+          subtitle={`+91${client?.PhoneNo}`}
         />
 
         {/* CHAT AREA */}

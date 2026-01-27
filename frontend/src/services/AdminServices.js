@@ -419,7 +419,7 @@ export async function GetCRMCContactWithFilter(token, data) {
 export async function MSGSend(token, formData) {
   try {
     const response = await axios.post(
-      `${config.base_url}/whatsapp/send`,
+      `${config.base_url}whatsapp/send`,
       formData,
       {
         headers: {

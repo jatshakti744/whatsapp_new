@@ -167,7 +167,7 @@ const [employee, setEmployee] = useState(null);
   };
 
   const fetchHistory = async (skipIfFetching = false) => {
-    if (!client?.mobile) return;
+    if (!client?.PhoneNo) return;
 
     if (skipIfFetching && isFetchingRef.current) return;
 
@@ -175,7 +175,7 @@ const [employee, setEmployee] = useState(null);
     setLoading(true);
 
     try {
-      const res = await GetChatHistoryByPhone(token, client.mobile, sender_id);
+      const res = await GetChatHistoryByPhone(token, client.PhoneNo, sender_id);
       setMessages(res.data || []);
       setEmployee(res.emp || null); 
     } catch (err) {
@@ -193,7 +193,7 @@ const [employee, setEmployee] = useState(null);
   }, [messages]);
 
   useEffect(() => {
-    if (!client?.mobile) return;
+    if (!client?.PhoneNo) return;
 
     fetchHistory();
 
@@ -208,7 +208,7 @@ const [employee, setEmployee] = useState(null);
 
       if (!data) return;
 
-      if (data.phone?.endsWith(client.mobile)) {
+      if (data.phone?.endsWith(client.PhoneNo)) {
         if (data.type === "whatsapp_chat") {
           console.log("📨 New chat message received");
           fetchHistory(true);
@@ -256,7 +256,7 @@ const [employee, setEmployee] = useState(null);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [client?.mobile, token, sender_id]);
+  }, [client?.PhoneNo, token, sender_id]);
 
   const sendMessage = async () => {
     if (!text && !file) return;
@@ -264,13 +264,13 @@ const [employee, setEmployee] = useState(null);
     setSending(true);
 
     try {
-      const phoneNumber = client.mobile.startsWith("91")
-        ? client.mobile
-        : `91${client.mobile}`;
+      const phoneNumber = client.PhoneNo.startsWith("91")
+        ? client.PhoneNo
+        : `91${client.PhoneNo}`;
 
       const formData = new FormData();
       formData.append("phone", phoneNumber);
-      formData.append("sender_type", "employee");
+      formData.append("sender_type", "admin");
       formData.append("sender_id", sender_id);
       formData.append("sendto", "1");
       formData.append("crm_user_id", sender_id);
@@ -319,9 +319,9 @@ const [employee, setEmployee] = useState(null);
     setSending(true);
 
     try {
-      const phoneNumber = client.mobile.startsWith("91")
-        ? client.mobile
-        : `91${client.mobile}`;
+      const phoneNumber = client.PhoneNo.startsWith("91")
+        ? client.PhoneNo
+        : `91${client.PhoneNo}`;
 
       const formData = new FormData();
       formData.append("phone", phoneNumber);
@@ -735,14 +735,14 @@ const [employee, setEmployee] = useState(null);
       <div className="flex-1 flex flex-col">
         <DashboardHeader
           title={`${client?.fname || client?.name ||""} ${client?.lname || ""}`}
-          subtitle={`+91${client?.mobile} | Owner: ${
+          subtitle={`+91${client?.PhoneNo} | Owner: ${
            employee?.name || "N/A"
           }`}
         />
 {/* 
  <DashboardHeader
   title={employee?.name || "N/A"}
-  subtitle={`+91${employee?.mobile || ""} | ${employee?.email || ""}`}
+  subtitle={`+91${employee?.PhoneNo || ""} | ${employee?.email || ""}`}
 /> */}
 
 
