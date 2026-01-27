@@ -72,8 +72,8 @@ const userModel = Schema({
         default: null,
     },
     crm_user_id: {
-        type: Number,
-        default: 0
+        type: String,
+        default: "0"
     },
 
 

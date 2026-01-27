@@ -973,6 +973,9 @@ async getCrmContactWithFilter(req, res) {
         data: []
       });
     }
+    const crm = await fetchContactsByOwner(owner_id, page, limit, search);
+    const contacts = crm.data || [];
+/*
 
     // 1️⃣ Contacts by owner
     const response = await axios.get(
@@ -986,7 +989,10 @@ async getCrmContactWithFilter(req, res) {
     );
 
     const crm = response.data;
-    const contacts = crm.data || [];
+    const contacts = crm.data || []; 
+
+
+    */  
     // 2️⃣ Unique owner_ids from list (safe)
     const ownerIds = [...new Set(
       contacts.map(c => c.ownerid).filter(Boolean)
@@ -1569,5 +1575,18 @@ async function getEmployeeFromCrm(employeeId) {
 
   return response.data.data;
 }
+
+
+async function fetchContactsByOwner( owner_id, page, limit, search ) {
+  const response = await axios.get(
+    `${process.env.API_BASE_URL}viewcontactbyownerid/${owner_id}`,
+    {
+      headers: { "x-crm-key": process.env.CRM_SECRET_KEY },
+      params: { page, limit, search }
+    }
+  );
+  return response.data;
+}
+
 
 module.exports = new Users();

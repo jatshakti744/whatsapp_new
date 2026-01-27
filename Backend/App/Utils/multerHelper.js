@@ -6,6 +6,17 @@ const path = require('path');
 const getMulterStorage = (folderName) => {
     return multer.diskStorage({
         destination: function (req, file, cb) {
+            
+const uploadPath = path.join(
+  __dirname,
+  `../../../${process.env.DOMAINNAME}/uploads`,
+  folderName
+);
+
+// 🔥 console output
+console.log("UPLOAD PATH 👉", uploadPath);
+
+
           //  cb(null, path.join(__dirname, `../../../../var/www/apiwhatsapp.tradestreet.in/uploads`, folderName)); // Dynamic folder based on controller
                   cb(null, path.join(__dirname, `../../../${process.env.DOMAINNAME}/uploads`, folderName)); // Dynamic folder based on controller
       

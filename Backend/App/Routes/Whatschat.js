@@ -10,7 +10,8 @@ const {
   Webhook,
   getChatHistoryByPhone,
   getChatUserList,
-  sendTemplateBulkMessage
+  sendTemplateBulkMessage,
+  getChatUserListFromClient
 } = require('../Controllers/Whatsappchat');
 
 
@@ -24,5 +25,6 @@ router.get('/whatsapp/getchathistorybyphone/:phone/:crm_user_id', auth, getChatH
 router.get('/whatsapp/delete/:id', auth, deleteMessage);
 router.get('/whatsapp/getchatuserlist', auth, getChatUserList);
 router.post('/whatsapp/sendbluk', auth, sendTemplateBulkMessage);
+router.get('/whatsapp/getchatuserlistfromclient', auth, getChatUserListFromClient);
 
 module.exports = router;

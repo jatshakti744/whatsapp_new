@@ -24,18 +24,7 @@ class Whatsappchat {
           req,
           res,
           (err) => {
-            // if (err) {
-            //     if (err.code === "LIMIT_FILE_SIZE") {
-            // return reject(new Error("File size must be less than 5MB"));
-            //     }
-            // return reject(err);
-            //    }
-
-            //   if (!req.files || !req.files.image) {
-            // return reject(new Error("No file uploaded"));
-            //    }
-
-            resolve();
+             resolve();
           }
         );
       });
@@ -45,11 +34,10 @@ class Whatsappchat {
       if (req.files && req.files.image && req.files.image.length > 0) {
         file = req.files.image[0];
       }
+
       // 🔥 TYPE YAHIN SE NIKALO
       let message_type = "text";   // default
       let media_url = null;
-
-
 
       if (file && file.mimetype) {
         if (file.mimetype.startsWith("image/")) {
@@ -62,7 +50,7 @@ class Whatsappchat {
           message_type = "document";
         }
         const filename = file.filename;
-        media_url = `${process.env.DOMAIN}/uploads/whatsapp/${file.filename}`;
+        media_url = `${process.env.DOMAIN}uploads/whatsapp/${file.filename}`;
       }
 
       const {
@@ -77,6 +65,7 @@ class Whatsappchat {
         template_params,
         crm_user_id
       } = req.body;
+
       if (!phone || !sender_type) {
         return res.status(400).json({
           status: false,
@@ -98,8 +87,6 @@ class Whatsappchat {
       const isTemplate = is_template === true || is_template === "true";
       // 🔹 TEMPLATE MESSAGE (24h ke bahar)
       if (isTemplate) {
-
-
         // 🔹 Convert string to array if needed
         let paramsArray = [];
 
@@ -111,8 +98,6 @@ class Whatsappchat {
             paramsArray = template_params.split("##").filter(p => p.trim() !== "");
           }
         }
-
-
 
         payload.type = "template";
         payload.template = {
@@ -146,7 +131,6 @@ class Whatsappchat {
           const regex = new RegExp(`\\{\\{${index + 1}\\}\\}`, "g"); // Escape curly braces
           finalMessage = finalMessage.replace(regex, param);
         });
-
 
       }
 
@@ -215,7 +199,6 @@ class Whatsappchat {
       //       const crm_user_id = crmUser?.employee_id || 1;
 
 
-console.log('finalMessage:', finalMessage);
       const chat = await Whatsappchat_Modal.create({
         phone,
         message: finalMessage,
@@ -612,7 +595,11 @@ console.log('finalMessage:', finalMessage);
       }
 
         const last10Phone = phone.slice(-10); // take only last 10 digits
-        const crmUser = await getEmployeeFromCrmMobile(phone);
+       ////// insert new client if not exists //////
+       // const client = await findOrCreateClient(phone);
+      ////// insert new client if not exists //////
+
+       const crmUser = await getEmployeeFromCrmMobile(phone);
         const crm_user_id = crmUser?.employee_id || 1;
 
         // 🔹 Save in DB
@@ -978,6 +965,163 @@ console.log('finalMessage:', finalMessage);
   }
 }
 
+async getChatUserListFromClient(req, res) {
+  try {
+    let { crm_user_id, search } = req.query;
+    crm_user_id = Number(crm_user_id);
+
+    let matchCondition = {
+      del: 0,
+      ActiveStatus: 1
+    };
+
+    if (crm_user_id && crm_user_id !== 1) {
+      matchCondition.crm_user_id = crm_user_id;
+    }
+
+    if (search && search.trim() !== "") {
+      const normalizedSearch = search.replace(/\D/g, "");
+      matchCondition.phone = { $regex: normalizedSearch };
+    }
+
+    const chats = await Whatsappchat_Modal.aggregate([
+      { $match: matchCondition },
+      { $sort: { createdAt: -1 } },
+
+      // 🔹 normalize phone (last 10 digit)
+      {
+        $addFields: {
+          normalizedPhone: {
+            $substr: [
+              {
+                $cond: [
+                  { $gt: [{ $strLenCP: "$phone" }, 10] },
+                  {
+                    $substr: [
+                      "$phone",
+                      { $subtract: [{ $strLenCP: "$phone" }, 10] },
+                      10
+                    ]
+                  },
+                  "$phone"
+                ]
+              },
+              0,
+              10
+            ]
+          }
+        }
+      },
+
+      // 🔹 group by phone
+      {
+        $group: {
+          _id: "$normalizedPhone",
+          lastMessage: { $first: "$message" },
+          message_type: { $first: "$message_type" },
+          sender_type: { $first: "$sender_type" },
+          sender_id: { $first: "$sender_id" },
+          crm_user_id: { $first: "$crm_user_id" },
+          createdAt: { $first: "$createdAt" },
+
+          lastClientMessageAt: {
+            $max: {
+              $cond: [
+                { $eq: ["$sender_type", "bot"] },
+                "$createdAt",
+                null
+              ]
+            }
+          },
+
+          unreadCount: {
+            $sum: {
+              $cond: [{ $eq: ["$is_read", 0] }, 1, 0]
+            }
+          }
+        }
+      },
+
+      // 🔥 JOIN WITH CLIENT COLLECTION
+          {
+        $lookup: {
+          from: "clients",   // ⚠️ confirm collection name
+          let: { phone: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$del", 0] },
+                    { $eq: ["$ActiveStatus", 1] },
+                    {
+                      $regexMatch: {
+                        input: "$PhoneNo",
+                        regex: {
+                          $concat: ["$$phone", { $literal: "$" }]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              $project: {
+                FullName: 1,
+                PhoneNo: 1
+              }
+            }
+          ],
+          as: "client"
+        }
+      },
+
+
+      // 🔹 flatten client
+      {
+        $addFields: {
+          client: { $arrayElemAt: ["$client", 0] }
+        }
+      },
+
+      { $sort: { createdAt: -1 } },
+      { $limit: 50 },
+
+      {
+        $project: {
+          _id: 0,
+          phone: "$_id",
+          lastMessage: 1,
+          message_type: 1,
+          sender_type: 1,
+          sender_id: 1,
+          crm_user_id: 1,
+          createdAt: 1,
+          unreadCount: 1,
+          lastClientMessageAt: 1,
+
+          // 🔥 client data
+          client_id: "$client._id",
+          client_name: "$client.FullName"
+        }
+      }
+    ]);
+
+    res.json({
+      status: true,
+      data: chats
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      status: false,
+      message: "Server error"
+    });
+  }
+}
+
 
 
 }
@@ -1048,5 +1192,27 @@ async function getEmployeeFromCrm(employeeId) {
 
   return response.data.data;
 }
+
+async function findOrCreateClient(phone) {
+  const last10Phone = phone.slice(-10);
+
+  let client = await Clients_Modal.findOne({
+    PhoneNo: last10Phone,
+    del: 0
+  });
+
+  if (!client) {
+    client = await Clients_Modal.create({
+      FullName: "",   // default name
+      PhoneNo: last10Phone,
+      add_by: null,                // ya default admin id
+      del: 0,
+      ActiveStatus: 1
+    });
+  }
+
+  return client;
+}
+
 
 module.exports = new Whatsappchat();

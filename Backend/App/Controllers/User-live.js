@@ -761,142 +761,143 @@ async getUser(req, res) {
     }
   }
 
-  async loginUserWithCrm(req, res) {
-    try {
-      const { employeeId } = req.query;
-      if (!employeeId) {
-        return res.json({ status: false, message: "Employee ID required" });
-      }
-
-      // 🔹 Get employee detail from CRM
-      const crmUser = await getEmployeeFromCrm(employeeId);
-      if (!crmUser) {
-        return res.json({ status: false, message: "Employee not found in CRM" });
-      }
-
-      //const { UserName, password, FullName, Email, PhoneNo } = crmUser;
-       const { UserName,  FullName, Email, PhoneNo } = crmUser;
-
-      // 🔥 mobile null / empty / undefined check
-      if (!crmUser.PhoneNo) {
-        return res.json({
-          status: false,
-          message: "Employee mobile number not found in CRM"
-        });
-      }
-
-      if (!/^\d{10,15}$/.test(PhoneNo)) {
-        return res.json({
-          status: false,
-          message: "Invalid mobile number in CRM"
-        });
-      }
-
-    /*  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(Email)) {
-        return res.json({
-          status: false,
-          message: "Invalid email address in CRM"
-        });
-      }
-
-      if (password.length < 6) {
-        return res.json({
-          status: false,
-          message: "Password must be at least 6 characters"
-        });
-      }
-*/
-
-      // 🔹 Check user
-      let user = await Users_Modal.findOne({ UserName, del: '0' });
-     // const hashedCrmPassword = await bcrypt.hash(password, 10);
-      if (!user) {
-        user = await Users_Modal.create({
-          UserName,
-          FullName,
-          Email,
-          PhoneNo,
-          crm_user_id: employeeId,
-         // password: hashedCrmPassword,
-          ActiveStatus: '1',
-          del: '0'
-        });
-      } else {
-
-        if (user.ActiveStatus === '0') {
+  
+    async loginUserWithCrm(req, res) {
+      try {
+        const { employeeId } = req.query;
+        if (!employeeId) {
+          return res.json({ status: false, message: "Employee ID required" });
+        }
+  
+        // 🔹 Get employee detail from CRM
+        const crmUser = await getEmployeeFromCrm(employeeId);
+        if (!crmUser) {
+          return res.json({ status: false, message: "Employee not found in CRM" });
+        }
+  
+        //const { UserName, password, FullName, Email, PhoneNo } = crmUser;
+         const { UserName,  FullName, Email, PhoneNo } = crmUser;
+  
+        // 🔥 mobile null / empty / undefined check
+        if (!crmUser.PhoneNo) {
           return res.json({
             status: false,
-            message: "Your account is deactivated. Please contact the administrator."
+            message: "Employee mobile number not found in CRM"
           });
         }
-
- let isUpdated = false;
-
-      if (user.FullName !== FullName) {
-        user.FullName = FullName;
-        isUpdated = true;
-      }
-
-      if (user.Email !== Email) {
-        user.Email = Email;
-        isUpdated = true;
-      }
-
-      if (user.PhoneNo !== PhoneNo) {
-        user.PhoneNo = PhoneNo;
-        isUpdated = true;
-      }
-
-
-
-       /* const isSamePassword = await bcrypt.compare(password, user.password);
-        if (!isSamePassword) {
-          user.password = hashedCrmPassword; 
-          isUpdated = true;
-        } */
-
-        user.crm_user_id = employeeId;
-
-      if (isUpdated) {
-        await user.save();
-      }
-
-
-      }
-
-      // 🔹 Token generate
-      const token = crypto.randomBytes(10).toString('hex');
-      user.token = token;
-      await user.save();
-
-      const tokenjwt = jwt.sign(
-        { id: user._id },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-
-
-
-      const redirectUrl =
-        `${process.env.DOMAIN}redirect` +
-        `?uid=${user.crm_user_id}` +
-        `&token=${encodeURIComponent(token)}` +
-        `&tokenjwt=${encodeURIComponent(tokenjwt)}` +
-        `&name=${encodeURIComponent(user.FullName)}` +
-        `&email=${encodeURIComponent(user.Email)}` +
-        `&phone=${encodeURIComponent(user.PhoneNo)}`;
-
   
-        
-      return res.redirect(redirectUrl);
-
-
-    } catch (err) {
-      return res.json({ status: false, message: err.message });
+        if (!/^\d{10,15}$/.test(PhoneNo)) {
+          return res.json({
+            status: false,
+            message: "Invalid mobile number in CRM"
+          });
+        }
+  
+      /*  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(Email)) {
+          return res.json({
+            status: false,
+            message: "Invalid email address in CRM"
+          });
+        }
+  
+        if (password.length < 6) {
+          return res.json({
+            status: false,
+            message: "Password must be at least 6 characters"
+          });
+        }
+  */
+  
+        // 🔹 Check user
+        let user = await Users_Modal.findOne({ UserName, del: '0' });
+       // const hashedCrmPassword = await bcrypt.hash(password, 10);
+        if (!user) {
+          user = await Users_Modal.create({
+            UserName,
+            FullName,
+            Email,
+            PhoneNo,
+            crm_user_id: employeeId,
+           // password: hashedCrmPassword,
+            ActiveStatus: '1',
+            del: '0'
+          });
+        } else {
+  
+          if (user.ActiveStatus === '0') {
+            return res.json({
+              status: false,
+              message: "Your account is deactivated. Please contact the administrator."
+            });
+          }
+  
+   let isUpdated = false;
+  
+        if (user.FullName !== FullName) {
+          user.FullName = FullName;
+          isUpdated = true;
+        }
+  
+        if (user.Email !== Email) {
+          user.Email = Email;
+          isUpdated = true;
+        }
+  
+        if (user.PhoneNo !== PhoneNo) {
+          user.PhoneNo = PhoneNo;
+          isUpdated = true;
+        }
+  
+  
+  
+         /* const isSamePassword = await bcrypt.compare(password, user.password);
+          if (!isSamePassword) {
+            user.password = hashedCrmPassword; 
+            isUpdated = true;
+          } */
+  
+          user.crm_user_id = employeeId;
+  
+        if (isUpdated) {
+          await user.save();
+        }
+  
+  
+        }
+  
+        // 🔹 Token generate
+        const token = crypto.randomBytes(10).toString('hex');
+        user.token = token;
+        await user.save();
+  
+        const tokenjwt = jwt.sign(
+          { id: user._id },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+  
+  
+  
+  
+        const redirectUrl =
+          `${process.env.DOMAIN}redirect` +
+          `?uid=${user.crm_user_id}` +
+          `&token=${encodeURIComponent(token)}` +
+          `&tokenjwt=${encodeURIComponent(tokenjwt)}` +
+          `&name=${encodeURIComponent(user.FullName)}` +
+          `&email=${encodeURIComponent(user.Email)}` +
+          `&phone=${encodeURIComponent(user.PhoneNo)}`;
+  
+    
+          
+        return res.redirect(redirectUrl);
+  
+  
+      } catch (err) {
+        return res.json({ status: false, message: err.message });
+      }
     }
-  }
-
+  
 /*
   async getCrmContactWithFilter(req, res) {
     try {
@@ -974,6 +975,9 @@ async getCrmContactWithFilter(req, res) {
         data: []
       });
     }
+    const crm = await fetchContactsByOwner(owner_id, page, limit, search);
+    const contacts = crm.data || [];
+/*
 
     // 1️⃣ Contacts by owner
     const response = await axios.get(
@@ -987,7 +991,10 @@ async getCrmContactWithFilter(req, res) {
     );
 
     const crm = response.data;
-    const contacts = crm.data || [];
+    const contacts = crm.data || []; 
+
+
+    */  
     // 2️⃣ Unique owner_ids from list (safe)
     const ownerIds = [...new Set(
       contacts.map(c => c.ownerid).filter(Boolean)
@@ -1303,11 +1310,262 @@ async  checkCrmStatus(req, res) {
   }
 }
 
+async getCrmContactWithFilterWithClient(req, res) {
+  try {
+    const {
+      owner_id = "",
+      search = "",
+      page = 1,
+      limit = 10
+    } = req.body;
+
+    const skip = (page - 1) * limit;
+
+    // 1️⃣ Base filter
+    const filter = {
+      del: 0
+    };
+
+     if (owner_id) {
+      filter.assigned_to = owner_id;
+    }
+    // 2️⃣ Search
+    if (search) {
+      filter.$or = [
+        { FullName: { $regex: search, $options: "i" } },
+        { PhoneNo: { $regex: search } }
+      ];
+    }
+
+    // 3️⃣ Fetch clients + count
+    const [clients, totalRecords] = await Promise.all([
+      Clients_Modal
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+
+      Clients_Modal.countDocuments(filter)
+    ]);
+
+    // 4️⃣ Collect add_by ids
+    const ownerIds = [
+      ...new Set(clients.map(c => c.add_by).filter(Boolean))
+    ];
+
+    // 5️⃣ Fetch owner names FROM SAME COLLECTION
+    const owners = await Clients_Modal.find(
+      { _id: { $in: ownerIds } },
+      { FullName: 1 }
+    ).lean();
+
+    const ownerMap = {};
+    owners.forEach(o => {
+      ownerMap[o._id.toString()] = o.FullName;
+    });
+
+    // 6️⃣ Attach owner_name
+    const finalClients = clients.map(c => ({
+      ...c,
+      owner_name: ownerMap[c.add_by] || ""
+    }));
+
+    return res.json({
+      status: true,
+      message: "Client data fetched successfully",
+      data: finalClients,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords
+      }
+    });
+
+  } catch (error) {
+    console.error("CLIENT FETCH ERROR:", error);
+    return res.json({
+      status: false,
+      message: "Server error",
+      data: []
+    });
+  }
+}
+
+async getCrmContactWithFilterUnassignWithClient(req, res) {
+  try {
+    const {
+      search = "",
+      page = 1,
+      limit = 10
+    } = req.body;
+
+    const skip = (page - 1) * limit;
+
+    // 🔹 Build MongoDB filter
+    const filter = {
+      del: 0,
+      $or: [
+        { assigned_to: null },
+        { assigned_to: "" }
+      ]
+    };
+
+    // 🔹 Add search filter if present
+    if (search && search.trim() !== "") {
+      const normalizedSearch = search.replace(/\D/g, "");
+      filter.$or.push(
+        { FullName: { $regex: search, $options: "i" } },
+        { PhoneNo: { $regex: normalizedSearch } }
+      );
+    }
+
+    // 🔹 Fetch clients + total count
+    const [clients, totalRecords] = await Promise.all([
+      Clients_Modal
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+
+      Clients_Modal.countDocuments(filter)
+    ]);
+
+    // 🔹 Return response
+    return res.json({
+      status: true,
+      message: "Unassigned clients fetched successfully",
+      data: clients,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords
+      }
+    });
+
+  } catch (error) {
+    console.error("UNASSIGNED CLIENTS ERROR:", error);
+    return res.json({
+      status: false,
+      message: "Server error",
+      data: []
+    });
+  }
+}
+
+async getCrmContactWithFilterUnassignAllWithClient(req, res) {
+  try {
+    const { search = "" } = req.body;
+
+    // 🔹 Build MongoDB filter
+    const filter = {
+      del: 0,
+      $or: [
+        { assigned_to: null },
+        { assigned_to: "" }
+      ]
+    };
+
+    // 🔹 Add search filter if present
+    if (search && search.trim() !== "") {
+      const normalizedSearch = search.replace(/\D/g, "");
+      filter.$or.push(
+        { FullName: { $regex: search, $options: "i" } },
+        { PhoneNo: { $regex: normalizedSearch } }
+      );
+    }
+
+    // 🔹 Fetch all matching clients (no pagination)
+    const clients = await Clients_Modal
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 🔹 Return JSON or prepare for CSV/Excel export
+    return res.json({
+      status: true,
+      message: "All unassigned clients fetched successfully",
+      data: clients
+    });
+
+  } catch (error) {
+    console.error("EXPORT UNASSIGNED CLIENTS ERROR:", error);
+    return res.json({
+      status: false,
+      message: "Server error",
+      data: []
+    });
+  }
+}
+
+async getAllClients(req, res) {
+  try {
+    const { owner_id = "", search = "" } = req.body;
+
+    // 1️⃣ Base filter
+    const filter = { del: 0 };
+
+    if (owner_id) {
+      filter.assigned_to = owner_id;
+    }
+
+    // 2️⃣ Search
+    if (search && search.trim() !== "") {
+      filter.$or = [
+        { FullName: { $regex: search, $options: "i" } },
+        { PhoneNo: { $regex: search } }
+      ];
+    }
+
+    // 3️⃣ Fetch all matching clients (no pagination)
+    const clients = await Clients_Modal
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 4️⃣ Collect add_by ids
+    const ownerIds = [
+      ...new Set(clients.map(c => c.add_by).filter(Boolean))
+    ];
+
+    // 5️⃣ Fetch owner names from same collection
+    const owners = await Clients_Modal.find(
+      { _id: { $in: ownerIds } },
+      { FullName: 1 }
+    ).lean();
+
+    const ownerMap = {};
+    owners.forEach(o => {
+      ownerMap[o._id.toString()] = o.FullName;
+    });
+
+    // 6️⃣ Attach owner_name
+    const finalClients = clients.map(c => ({
+      ...c,
+      owner_name: ownerMap[c.add_by] || ""
+    }));
+
+    return res.json({
+      status: true,
+      message: "All client data fetched successfully",
+      data: finalClients
+    });
+
+  } catch (error) {
+    console.error("ALL CLIENTS FETCH ERROR:", error);
+    return res.json({
+      status: false,
+      message: "Server error",
+      data: []
+    });
+  }
+}
+
 
 }
 
 async function getEmployeeFromCrm(employeeId) {
-  console.log("Fetching employee from CRM, ID:", employeeId);
   const response = await axios.get(
     `${process.env.API_BASE_URL}viewemployeebyid/${employeeId}`,
     {
@@ -1316,9 +1574,58 @@ async function getEmployeeFromCrm(employeeId) {
       }
     }
   );
-  console.log("response:", response);
 
-  return response.data.data;
+  const data = response.data.data;
+
+ if (!data) return null;
+
+  // ?? yahin mapping
+  return {
+    UserName: data.userName,
+    FullName: data.fullName,
+    Email: data.email,
+    PhoneNo: data.phoneNo,
+    status: data.status === True || data.status === "True" ? 1 : 0
+  };
+}
+
+
+async function fetchContactsByOwner(owner_id, page, limit, search) {
+  const response = await axios.get(
+    `${process.env.API_BASE_URL}viewcontactbyownerid/${owner_id}`,
+    {
+      headers: { "x-crm-key": process.env.CRM_SECRET_KEY },
+      params: { page, limit, search }
+    }
+  );
+
+  const apiData = response.data;
+
+  // 👇 totalRecords safely nikalo
+  const totalRecords =
+    apiData.pagination?.totalRecords ??
+    apiData.total ??
+    apiData.count ??
+    0;
+
+  const totalPages = Math.ceil(totalRecords / limit);
+
+  return {
+    status: apiData.status,
+    data: apiData.data.map(item => ({
+      fname: item.name,
+      lname: null,
+      email: item.email ?? "",
+      mobile: item.whatsAppno,
+      ownerid: String(owner_id)
+    })),
+    pagination: {
+      totalRecords,
+      totalPages,
+      currentPage: Number(page),
+      limit: Number(limit)
+    }
+  };
 }
 
 module.exports = new Users();
