@@ -881,12 +881,12 @@ async getUser(req, res) {
       const redirectUrl =
         `${process.env.DOMAIN}redirect` +
         `?uid=${user.crm_user_id}` +
+        `?Role=${user.Role}` +
         `&token=${encodeURIComponent(token)}` +
         `&tokenjwt=${encodeURIComponent(tokenjwt)}` +
         `&name=${encodeURIComponent(user.FullName)}` +
         `&email=${encodeURIComponent(user.Email)}` +
         `&phone=${encodeURIComponent(user.PhoneNo)}`;
-
 
       return res.redirect(redirectUrl);
 
