@@ -510,6 +510,114 @@ class Whatsappchat {
     }
   }
 
+  async getChatHistoryByPhones(req, res) {
+    try {
+      const { phone, crm_user_id } = req.params;
+
+      if (!phone) {
+        return res.status(400).json({
+          status: false,
+          message: "Phone number is required"
+        });
+      }
+
+      const query = {
+        phone: phone,
+        del: 0
+      };
+
+      await Whatsappchat_Modal.updateMany(
+        {
+          ...query,
+          is_read: 0
+        },
+        {
+          $set: { is_read: 1 }
+        }
+      );
+
+      const chats = await Whatsappchat_Modal
+        .find(query)
+        .sort({ createdAt: 1 });
+
+      let emp = null;
+
+      try {
+        const crmUser = await findOrCreateClient(phone);
+
+        const employeeId =  crmUser?._id
+         
+
+      /*  let newEmployeeId = null;
+        newEmployeeId =
+          crmUser?.employee_id ||
+          crmUser?.id ||
+          null;
+
+        if (Number(crm_user_id) !== 1) {
+          if (
+            newEmployeeId &&
+            Number(newEmployeeId) !== Number(crm_user_id)
+          ) {
+            await Whatsappchat_Modal.updateMany(
+              {
+                phone: phone,
+                crm_user_id: Number(crm_user_id),
+                del: 0
+              },
+              {
+                $set: {
+                  crm_user_id: Number(newEmployeeId),
+                  old_crm_user_id: Number(crm_user_id)
+                }
+              }
+            );
+
+            if (!newEmployeeId) {
+              const redirectUrl = `${process.env.DOMAIN}member/clients`;
+              return res.redirect(redirectUrl);
+            }
+          }
+
+        }
+      */
+          if (employeeId) {
+          const empData = await getEmployeeFromCrm(employeeId);
+
+          emp = empData
+            ? {
+              id: empData._id,
+              name: empData.FullName || "",
+              email: empData.Email || "",
+              mobile: empData.PhoneNo
+            }
+            : null;
+        }
+      } catch (err) {
+        console.error("EMP FETCH ERROR:", err.message);
+        emp = null;
+      }
+
+
+
+      return res.json({
+        status: true,
+        message: "Chat history fetched successfully",
+        data: chats,
+        emp: emp
+      });
+
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        status: false,
+        message: "Server error"
+      });
+    }
+  }
+
+
+
 
   async Webhook(req, res) {
     const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
