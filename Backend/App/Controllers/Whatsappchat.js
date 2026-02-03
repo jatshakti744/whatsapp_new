@@ -200,7 +200,7 @@ class Whatsappchat {
 
 
       const chat = await Whatsappchat_Modal.create({
-        phone,
+        phone: phone.replace(/\D/g, '').slice(-10),
         message: finalMessage,
         message_type: is_template ? "template" : message_type,
         media_url,
@@ -397,25 +397,10 @@ class Whatsappchat {
         });
       }
 
-      const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
-
-      // const chats = await Whatsappchat_Modal.find({
-      //   phone: new RegExp(`${normalizedPhone}$`), 
-      //   crm_user_id: crm_user_id,
-      //   del: 0
-      // }).sort({ createdAt: 1 });
-
-
       const query = {
-        phone: new RegExp(`${normalizedPhone}$`),
+        phone: phone,
         del: 0
       };
-
-      // agar crm_user_id 1 nahi hai tabhi condition lagao
-      // if (Number(crm_user_id) !== 1) {
-      //   query.crm_user_id = crm_user_id;
-      // }
-
 
       await Whatsappchat_Modal.updateMany(
         {
@@ -434,12 +419,12 @@ class Whatsappchat {
       let emp = null;
 
       try {
-        const crmUser = await getEmployeeFromCrmMobile(normalizedPhone);
+        const crmUser = await getEmployeeFromCrmMobile(phone);
 
         const employeeId =
           crmUser?.employee_id ||
           crmUser?.id ||
-          (crm_user_id || 1);
+          (Number(crm_user_id) || 1);
 
         let newEmployeeId = null;
         newEmployeeId =
@@ -447,21 +432,21 @@ class Whatsappchat {
           crmUser?.id ||
           null;
 
-        if (crm_user_id !== 1) {
+        if (Number(crm_user_id) !== 1) {
           if (
             newEmployeeId &&
-            newEmployeeId !== crm_user_id
+            Number(newEmployeeId) !== Number(crm_user_id)
           ) {
             await Whatsappchat_Modal.updateMany(
               {
-                phone: new RegExp(`${normalizedPhone}$`),
-                crm_user_id: crm_user_id,
+                phone: phone,
+                crm_user_id: Number(crm_user_id),
                 del: 0
               },
               {
                 $set: {
-                  crm_user_id: newEmployeeId,
-                  old_crm_user_id: crm_user_id
+                  crm_user_id: Number(newEmployeeId),
+                  old_crm_user_id: Number(crm_user_id)
                 }
               }
             );
@@ -509,6 +494,8 @@ class Whatsappchat {
       });
     }
   }
+
+
 
   async getChatHistoryByPhones(req, res) {
     try {
@@ -712,7 +699,7 @@ class Whatsappchat {
 
         // 🔹 Save in DB
         const chat = await Whatsappchat_Modal.create({
-          phone,
+          phone: phone.replace(/\D/g, '').slice(-10),
           message: text,
           message_type: type,
           media_url,
@@ -795,7 +782,7 @@ class Whatsappchat {
   async getChatUserList(req, res) {
     try {
       let { crm_user_id, search } = req.query;
-      crm_user_id = crm_user_id;
+      crm_user_id = Number(crm_user_id);
 
       // 🔹 Base match
       let matchCondition = {
@@ -809,13 +796,10 @@ class Whatsappchat {
       }
 
       // 🔹 phone search
-      if (search && search.trim() !== "") {
-        const normalizedSearch = search.replace(/\D/g, "");
-        matchCondition.phone = {
-          $regex: normalizedSearch,
-          $options: "i"
-        };
-      }
+     if (search?.trim()) {
+  const normalizedSearch = search.replace(/\D/g, "");
+  matchCondition.phone = { $regex: `^${normalizedSearch}` };
+}
       const chats = await Whatsappchat_Modal.aggregate([
         { $match: matchCondition },
 
@@ -823,7 +807,7 @@ class Whatsappchat {
         { $sort: { createdAt: -1 } },
 
 
-              {
+              /*  {
         $addFields: {
           normalizedPhone: {
             $substr: [
@@ -846,14 +830,13 @@ class Whatsappchat {
           }
         }
       },
-
+*/
 
         // 🔥 group by phone
         {
           $group: {
-            _id: "$normalizedPhone",
-
-            // last message info
+           // _id: "$normalizedPhone",
+            _id: "$phone",
             lastMessage: { $first: "$message" },
             message_type: { $first: "$message_type" },
             sender_type: { $first: "$sender_type" },
@@ -1035,7 +1018,7 @@ class Whatsappchat {
 
       /* ================= SAVE TO DB ================= */
       const chat = await Whatsappchat_Modal.create({
-        phone,
+        phone: phone.replace(/\D/g, '').slice(-10),
         message: finalMessage,
         message_type: "template",
         media_url: null,
@@ -1076,7 +1059,7 @@ class Whatsappchat {
 async getChatUserListFromClient(req, res) {
   try {
     let { crm_user_id, search } = req.query;
-    crm_user_id = crm_user_id;
+    crm_user_id = Number(crm_user_id);
 
     let matchCondition = {
       del: 0,
@@ -1097,7 +1080,7 @@ async getChatUserListFromClient(req, res) {
       { $sort: { createdAt: -1 } },
 
       // 🔹 normalize phone (last 10 digit)
-      {
+        /*  {
         $addFields: {
           normalizedPhone: {
             $substr: [
@@ -1120,11 +1103,13 @@ async getChatUserListFromClient(req, res) {
           }
         }
       },
+*/
 
-      // 🔹 group by phone
-      {
-        $group: {
-          _id: "$normalizedPhone",
+        // 🔥 group by phone
+        {
+          $group: {
+           // _id: "$normalizedPhone",
+          _id: "$phone",
           lastMessage: { $first: "$message" },
           message_type: { $first: "$message_type" },
           sender_type: { $first: "$sender_type" },
@@ -1229,6 +1214,42 @@ async getChatUserListFromClient(req, res) {
     });
   }
 }
+
+
+
+
+// Function to emit notification via socket
+  async EmitChatAssign(req, res) {
+  try {
+    const {
+      phone,
+      message,
+      message_id,
+      old_crm_user_id,
+      crm_user_id,
+      createdAt
+    } = req.body;
+
+    const socketData = {
+      type: "whatsapp_crm_update",
+      title: "Chat Assigned",
+      phone,
+      message: message || "Media message",
+      message_id,
+      old_crm_user_id,
+      crm_user_id,
+      createdAt
+    };
+
+    // 🔹 Emit via socket
+      io.emit("clientnotification", socketData);
+
+    return res.json({ status: true, message: "Notification emitted successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ status: false, message: "Something went wrong" });
+  }
+};
 
 
 

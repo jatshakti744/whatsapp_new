@@ -160,7 +160,6 @@ class Whatsappchat {
       }
 
       else if (message_type === "image") {
-        console.log("Preparing image payload with media_url:", media_url);
         payload.type = "image";
         payload.image = {
           link: media_url,
@@ -215,9 +214,8 @@ class Whatsappchat {
       //       const crm_user_id = crmUser?.employee_id || 1;
 
 
-console.log('finalMessage:', finalMessage);
       const chat = await Whatsappchat_Modal.create({
-        phone,
+        phone: phone.replace(/\D/g, '').slice(-10),
         message: finalMessage,
         message_type: is_template ? "template" : message_type,
         media_url,
@@ -403,6 +401,100 @@ console.log('finalMessage:', finalMessage);
   }
 
 
+async getChatHistoryByPhone(req, res) {
+  try {
+    const { phone, crm_user_id } = req.params;
+
+    if (!phone) {
+      return res.status(400).json({
+        status: false,
+        message: "Phone number is required"
+      });
+    }
+
+    const query = { phone, del: 0 };
+
+    // 🔥 1. Mark unread messages (non-blocking)
+    Whatsappchat_Modal.updateMany(
+      { ...query, is_read: 0 },
+      { $set: { is_read: 1 } }
+    ).catch(() => {});
+
+    // 🔥 2. Fetch chats ONLY (fastest DB operation)
+    const chats = await Whatsappchat_Modal
+      .find(query)
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // 🔥 3. Start CRM calls in parallel (DON’T await yet)
+    const crmPromise = getEmployeeFromCrmMobile(phone);
+
+    // 🔥 4. Resolve CRM result
+    const crmUser = await crmPromise;
+
+    const newEmployeeId =
+      crmUser?.employee_id ||
+      crmUser?.id ||
+      null;
+
+    const employeeId =
+      newEmployeeId ||
+      crm_user_id ||
+      "INFADMIN2901";
+
+    // 🔥 5. Ownership update (ONLY if required)
+    if (
+      crm_user_id !== "INFADMIN2901" &&
+      newEmployeeId &&
+      newEmployeeId !== crm_user_id
+    ) {
+      Whatsappchat_Modal.updateMany(
+        { phone, crm_user_id, del: 0 },
+        {
+          $set: {
+            crm_user_id: newEmployeeId,
+            old_crm_user_id: crm_user_id
+          }
+        }
+      ).catch(() => {});
+    }
+
+    // 🔥 6. Fetch employee info (last & optional)
+    let emp = null;
+    if (employeeId && employeeId !== "INFADMIN2901") {
+      try {
+        const empData = await getEmployeeFromCrm(employeeId);
+        if (empData) {
+          emp = {
+            id: employeeId,
+            name: empData.FullName || "",
+            email: empData.Email || "",
+            mobile: empData.PhoneNo || ""
+          };
+        }
+      } catch {}
+    }
+
+    // 🔥 7. Final response
+    return res.json({
+      status: true,
+      message: "Chat history fetched successfully",
+      data: chats,
+      emp
+    });
+
+  } catch (error) {
+    console.error("CHAT HISTORY ERROR:", error.message);
+    return res.status(500).json({
+      status: false,
+      message: "Server error"
+    });
+  }
+}
+
+
+
+/*
   async getChatHistoryByPhone(req, res) {
     try {
       const { phone, crm_user_id } = req.params;
@@ -414,7 +506,7 @@ console.log('finalMessage:', finalMessage);
         });
       }
 
-      const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+      // const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
 
       // const chats = await Whatsappchat_Modal.find({
       //   phone: new RegExp(`${normalizedPhone}$`), 
@@ -424,7 +516,7 @@ console.log('finalMessage:', finalMessage);
 
 
       const query = {
-        phone: new RegExp(`${normalizedPhone}$`),
+        phone: phone,
         del: 0
       };
 
@@ -451,7 +543,7 @@ console.log('finalMessage:', finalMessage);
       let emp = null;
 
       try {
-        const crmUser = await getEmployeeFromCrmMobile(normalizedPhone);
+        const crmUser = await getEmployeeFromCrmMobile(phone);
 
         const employeeId =
           crmUser?.employee_id ||
@@ -471,7 +563,7 @@ console.log('finalMessage:', finalMessage);
           ) {
             await Whatsappchat_Modal.updateMany(
               {
-                phone: new RegExp(`${normalizedPhone}$`),
+                phone: phone,
                 crm_user_id: crm_user_id,
                 del: 0
               },
@@ -526,6 +618,7 @@ console.log('finalMessage:', finalMessage);
       });
     }
   }
+  */
 
 
   async Webhook(req, res) {
@@ -617,7 +710,7 @@ console.log('finalMessage:', finalMessage);
         const crm_user_id = 'INFADMIN2901';
         // 🔹 Save in DB
         const chat = await Whatsappchat_Modal.create({
-          phone,
+          phone: phone.replace(/\D/g, '').slice(-10),
           message: text,
           message_type: type,
           media_url,
@@ -694,6 +787,147 @@ console.log('finalMessage:', finalMessage);
   }
 
   async getChatUserList(req, res) {
+  try {
+    let { crm_user_id, search, page = 1 } = req.query;
+
+    page = Number(page);
+    const limit = 25;
+    const skip = (page - 1) * limit;
+
+    // ===============================
+    // 🔹 MATCH CONDITION
+    // ===============================
+    let matchCondition = {
+      del: 0,
+      ActiveStatus: 1
+    };
+
+    if (crm_user_id) {
+      matchCondition.crm_user_id = crm_user_id;
+    }
+
+    if (search?.trim()) {
+      const normalizedSearch = search.replace(/\D/g, "");
+      matchCondition.phone = {
+        $regex: `^${normalizedSearch}`
+      };
+    }
+
+    // ===============================
+    // 🔹 AGGREGATION (OPTIMIZED)
+    // ===============================
+    const chats = await Whatsappchat_Modal.aggregate([
+      { $match: matchCondition },
+
+      // 🔥 latest message first per phone
+      {
+        $sort: {
+          phone: 1,
+          createdAt: -1,
+          _id: -1
+        }
+      },
+
+      {
+        $group: {
+          _id: "$phone",
+
+          lastMessage: { $first: "$message" },
+          message_type: { $first: "$message_type" },
+          sender_type: { $first: "$sender_type" },
+          sender_id: { $first: "$sender_id" },
+          crm_user_id: { $first: "$crm_user_id" },
+          createdAt: { $first: "$createdAt" },
+
+          // 🔥 last BOT message time
+          lastClientMessageAt: {
+            $max: {
+              $cond: [
+                { $eq: ["$sender_type", "bot"] },
+                "$createdAt",
+                null
+              ]
+            }
+          },
+
+          unreadCount: {
+            $sum: {
+              $cond: [{ $eq: ["$is_read", 0] }, 1, 0]
+            }
+          }
+        }
+      },
+
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+
+      {
+        $project: {
+          _id: 0,
+          phone: "$_id",
+          lastMessage: 1,
+          message_type: 1,
+          sender_type: 1,
+          sender_id: 1,
+          crm_user_id: 1,
+          createdAt: 1,
+          unreadCount: 1,
+          lastClientMessageAt: 1
+        }
+      }
+    ]);
+
+    // ===============================
+    // 🔹 NO DATA
+    // ===============================
+    if (!chats.length) {
+      return res.json({ status: true, data: [] });
+    }
+
+    // ===============================
+    // 🔥 BATCH CRM CALL (SUPER FAST)
+    // ===============================
+    const phones = chats.map(c => c.phone);
+
+    const employees = await getEmployeesFromCrmByPhones(phones);
+    // ↑ ek hi API call
+
+    const employeeMap = {};
+    employees.forEach(emp => {
+      const last10 = emp.phone?.slice(-10);
+      if (last10) employeeMap[last10] = emp;
+    });
+
+    // ===============================
+    // 🔹 FINAL RESPONSE
+    // ===============================
+    const finalChats = chats.map(chat => {
+      const emp = employeeMap[chat.phone] || {};
+      return {
+        ...chat,
+        client_name: emp.name || "",
+        client_email: emp.email || "",
+        client_id: emp.employee_id || null
+      };
+    });
+
+    return res.json({
+      status: true,
+      data: finalChats
+    });
+
+  } catch (err) {
+    console.error("getChatUserList error:", err);
+    res.status(500).json({
+      status: false,
+      message: "Server error"
+    });
+  }
+}
+
+/*
+  async getChatUserList(req, res) {
     try {
       let { crm_user_id, search } = req.query;
       // crm_user_id = crm_user_id;
@@ -714,105 +948,71 @@ console.log('finalMessage:', finalMessage);
       // }
 
       // 🔹 phone search
-      if (search && search.trim() !== "") {
-        const normalizedSearch = search.replace(/\D/g, "");
-        matchCondition.phone = {
-          $regex: normalizedSearch,
-          $options: "i"
-        };
-      }
+        if (search?.trim()) {
+       const normalizedSearch = search.replace(/\D/g, "");
+       matchCondition.phone = { $regex: `^${normalizedSearch}` };
+     }
 
+   const chats = await Whatsappchat_Modal.aggregate([
+  { $match: matchCondition },
 
-      const chats = await Whatsappchat_Modal.aggregate([
-        { $match: matchCondition },
+  // 🔥 हमेशा phone + createdAt sort (latest first)
+  { 
+    $sort: { 
+      phone: 1,           // stable grouping
+      createdAt: -1       // latest first
+    } 
+  },
 
-        // latest message first
-        { $sort: { createdAt: -1 } },
-
-        // 🔥 group by phone
-             {
-        $addFields: {
-          normalizedPhone: {
-            $substr: [
-              {
-                $cond: [
-                  { $gt: [{ $strLenCP: "$phone" }, 10] },
-                  {
-                    $substr: [
-                      "$phone",
-                      { $subtract: [{ $strLenCP: "$phone" }, 10] },
-                      10
-                    ]
-                  },
-                  "$phone"
-                ]
-              },
-              0,
-              10
-            ]
-          }
+  {
+    $group: {
+      _id: "$phone",
+      
+      // 🔥 हमेशा LATEST message
+      lastMessage: { $first: "$message" },
+      message_type: { $first: "$message_type" },
+      sender_type: { $first: "$sender_type" },
+      sender_id: { $first: "$sender_id" },
+      crm_user_id: { $first: "$crm_user_id" },
+      createdAt: { $first: "$createdAt" }, // Latest का time
+      
+      // 🔥 BOT का last time (या null)
+      lastClientMessageAt: { 
+        $max: {
+          $cond: [
+            { $eq: ["$sender_type", "bot"] },
+            "$createdAt",
+            null
+          ]
         }
       },
-
-
-        // 🔥 group by phone
-        {
-          $group: {
-            _id: "$normalizedPhone",
-
-            // last message info
-            lastMessage: { $first: "$message" },
-            message_type: { $first: "$message_type" },
-            sender_type: { $first: "$sender_type" },
-            sender_id: { $first: "$sender_id" },
-            crm_user_id: { $first: "$crm_user_id" },
-            createdAt: { $first: "$createdAt" },
-           
-            lastClientMessageAt: {
-              $max: {
-                $cond: [
-                  { $eq: ["$sender_type", "bot"] },
-                  "$createdAt",
-                  null
-                ]
-              }
-            },
-
-            // 🔥 unread count per mobile
-            unreadCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ["$is_read", 0] }
-                    ]
-                  },
-                  1,
-                  0
-                ]
-              }
-            }
-          }
-        },
-
-        { $sort: { createdAt: -1 } },
-        { $limit: 50 },
-
-        {
-          $project: {
-            _id: 0,
-            phone: "$_id",
-            lastMessage: 1,
-            message_type: 1,
-            sender_type: 1,
-            sender_id: 1,
-            crm_user_id: 1,
-            createdAt: 1,
-            unreadCount: 1,
-            lastClientMessageAt: 1 // 🔥 frontend badge
-          }
+      
+      unreadCount: {
+        $sum: {
+          $cond: [{ $eq: ["$is_read", 0] }, 1, 0]
         }
-      ]);
+      }
+    }
+  },
+
+  { $sort: { createdAt: -1 } },
+  { $limit: 25 },
+
+  {
+    $project: {
+      _id: 0,
+      phone: "$_id",
+      lastMessage: 1,
+      message_type: 1,
+      sender_type: 1,
+      sender_id: 1,
+      crm_user_id: 1,
+      createdAt: 1,
+      unreadCount: 1,
+      lastClientMessageAt: 1
+    }
+  }
+]);
 
 
       const finalChats = await Promise.all(
@@ -842,6 +1042,7 @@ console.log('finalMessage:', finalMessage);
       });
     }
   }
+  */
 
 
   async sendTemplateBulkMessage(req, res) {
@@ -941,7 +1142,7 @@ console.log('finalMessage:', finalMessage);
 
       /* ================= SAVE TO DB ================= */
       const chat = await Whatsappchat_Modal.create({
-        phone,
+        phone: phone.replace(/\D/g, '').slice(-10),
         message: finalMessage,
         message_type: "template",
         media_url: null,
@@ -1005,7 +1206,7 @@ async getChatUserListFromClient(req, res) {
       { $sort: { createdAt: -1 } },
 
       // 🔹 normalize phone (last 10 digit)
-      {
+       /*  {
         $addFields: {
           normalizedPhone: {
             $substr: [
@@ -1028,11 +1229,13 @@ async getChatUserListFromClient(req, res) {
           }
         }
       },
+*/
 
-      // 🔹 group by phone
-      {
-        $group: {
-          _id: "$normalizedPhone",
+        // 🔥 group by phone
+        {
+          $group: {
+           // _id: "$normalizedPhone",
+            _id: "$phone",
           lastMessage: { $first: "$message" },
           message_type: { $first: "$message_type" },
           sender_type: { $first: "$sender_type" },
@@ -1102,7 +1305,7 @@ async getChatUserListFromClient(req, res) {
       },
 
       { $sort: { createdAt: -1 } },
-      { $limit: 50 },
+      { $limit: 25 },
 
       {
         $project: {
@@ -1140,6 +1343,49 @@ async getChatUserListFromClient(req, res) {
 
 
 }
+
+async function getEmployeesFromCrmByPhones(phones = []) {
+  try {
+    if (!Array.isArray(phones) || phones.length === 0) {
+      return [];
+    }
+
+    // 🔹 sirf last 10 digit + unique
+    const uniquePhones = [
+      ...new Set(
+        phones
+          .filter(Boolean)
+          .map(p => p.toString().replace(/\D/g, "").slice(-10))
+          .filter(p => p.length === 10)
+      )
+    ];
+
+    if (!uniquePhones.length) return [];
+
+    const response = await axios.post(
+      `${process.env.API_BASE_URL}viewcontactsbyphones`,
+      { phones: uniquePhones },
+      {
+        headers: {
+          "x-crm-key": process.env.CRM_SECRET_KEY
+        },
+        timeout: 5000
+      }
+    );
+
+    // 🔹 CRM se array aana chahiye
+    if (!Array.isArray(response?.data?.data)) {
+      return [];
+    }
+
+    return response.data.data;
+
+  } catch (error) {
+    // console.error("CRM BATCH API ERROR:", error.message);
+    return [];
+  }
+}
+
 
 
 async function getEmployeeFromCrmMobile(mobileNumber) {

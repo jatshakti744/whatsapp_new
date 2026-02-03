@@ -416,7 +416,6 @@ async getUser(req, res) {
   async statusChange(req, res) {
 
     try {
-      console.log("REQ BODY 👉", req.body);   // 👈 ADD THIS
 
       const { id, status } = req.body;
       // Validate status
@@ -1009,7 +1008,6 @@ async getCrmContactWithFilter(req, res) {
     await Promise.all(
       ownerIds.map(async (id) => {
         const emp = await getEmployeeFromCrm(id);
-        console.log("EMPLOYEE FETCHED 👉", emp);
         ownerMap[id] = emp?.FullName || "";
       })
     );

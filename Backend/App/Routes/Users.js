@@ -37,7 +37,6 @@ router.post('/user/reset-password', resetPassword);
 router.post('/user/add', auth, AddUser);
 router.get('/user/list', auth, getUser);
 router.get('/user/lists', auth, getUsers);
-
 router.put('/user/update', auth, updateUser);
 router.get('/user/delete/:id', auth, deleteUser);
 router.get('/user/detail/:id', auth, detailUser);
