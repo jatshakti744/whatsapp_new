@@ -456,7 +456,7 @@ console.log('finalMessage:', finalMessage);
         const employeeId =
           crmUser?.employee_id ||
           crmUser?.id ||
-          (Number(crm_user_id) || 1);
+          (crm_user_id || 'INFADMIN2901');
 
         let newEmployeeId = null;
         newEmployeeId =
@@ -464,21 +464,21 @@ console.log('finalMessage:', finalMessage);
           crmUser?.id ||
           null;
 
-        if (Number(crm_user_id) !== 1) {
+        if (crm_user_id !== 'INFADMIN2901') {
           if (
             newEmployeeId &&
-            Number(newEmployeeId) !== Number(crm_user_id)
+            newEmployeeId !== crm_user_id
           ) {
             await Whatsappchat_Modal.updateMany(
               {
                 phone: new RegExp(`${normalizedPhone}$`),
-                crm_user_id: Number(crm_user_id),
+                crm_user_id: crm_user_id,
                 del: 0
               },
               {
                 $set: {
-                  crm_user_id: Number(newEmployeeId),
-                  old_crm_user_id: Number(crm_user_id)
+                  crm_user_id: newEmployeeId,
+                  old_crm_user_id: crm_user_id
                 }
               }
             );
@@ -614,7 +614,7 @@ console.log('finalMessage:', finalMessage);
         const last10Phone = phone.slice(-10); // take only last 10 digits
         // const crmUser = await getEmployeeFromCrmMobile(phone);
         // const crm_user_id = crmUser?.employee_id || 1;
-        const crm_user_id = 1;
+        const crm_user_id = 'INFADMIN2901';
         // 🔹 Save in DB
         const chat = await Whatsappchat_Modal.create({
           phone,
@@ -678,7 +678,7 @@ console.log('finalMessage:', finalMessage);
           phone: updatedMsg.phone,
           status: updatedMsg.status,
           error: updatedMsg.whatsapp_msg_error,
-          crm_user_id: updatedMsg.crm_user_id ?? 1
+          crm_user_id: updatedMsg.crm_user_id ?? 'INFADMIN2901'
         };
 
         io.emit("clientnotification", socketStatusData);
@@ -696,7 +696,7 @@ console.log('finalMessage:', finalMessage);
   async getChatUserList(req, res) {
     try {
       let { crm_user_id, search } = req.query;
-      crm_user_id = Number(crm_user_id);
+      // crm_user_id = crm_user_id;
 
       // 🔹 Base match
       let matchCondition = {
@@ -705,9 +705,13 @@ console.log('finalMessage:', finalMessage);
       };
 
       // 🔹 crm_user_id rule
-      if (crm_user_id && crm_user_id !== 1) {
+      if (crm_user_id) {
         matchCondition.crm_user_id = crm_user_id;
       }
+
+      // if (crm_user_id && crm_user_id !== 'INFADMIN2901') {
+      //   matchCondition.crm_user_id = crm_user_id;
+      // }
 
       // 🔹 phone search
       if (search && search.trim() !== "") {
@@ -717,6 +721,8 @@ console.log('finalMessage:', finalMessage);
           $options: "i"
         };
       }
+
+
       const chats = await Whatsappchat_Modal.aggregate([
         { $match: matchCondition },
 
@@ -812,15 +818,15 @@ console.log('finalMessage:', finalMessage);
       const finalChats = await Promise.all(
         chats.map(async (chat) => {
           const employee = await getEmployeeFromCrmMobile(chat.phone);
+
           return {
             ...chat,
             client_name: employee?.name || "",
             client_email: employee?.email || "",
-            client_id: employee?.id || null
+            client_id: employee?.employee_id || null
           };
         })
       );
-
 
 
       res.json({
@@ -1137,19 +1143,46 @@ async getChatUserListFromClient(req, res) {
 
 
 async function getEmployeeFromCrmMobile(mobileNumber) {
-  if (!mobileNumber) return null;
-
-  const last10Phone = mobileNumber.slice(-10); // take only last 10 digits
-  const response = await axios.get(
-    `${process.env.API_BASE_URL}viewcontactbyphone/${last10Phone}`,
-    {
-      headers: {
-        "x-crm-key": process.env.CRM_SECRET_KEY
-      }
+  try {
+    if (!mobileNumber) {
+      return {
+        id: "INFADMIN2901"
+      };
     }
-  );
 
-  return response.data.data;
+    const last10Phone = mobileNumber.slice(-10);
+
+    const response = await axios.get(
+      `${process.env.API_BASE_URL}viewcontactbyphone/${last10Phone}`,
+      {
+        headers: {
+          "x-crm-key": process.env.CRM_SECRET_KEY
+        }
+      }
+    );
+
+    // 👇 Agar CRM se data nahi mila
+    if (!response?.data?.data) {
+      return {
+        id: "INFADMIN2901"
+      };
+    }
+
+    return response.data.data;
+
+  } catch (error) {
+    // 👇 404 / not found case
+    if (error.response?.status === 404) {
+      return {
+        id: "INFADMIN2901"
+      };
+    }
+
+    console.error("CRM ERROR:", error.message);
+    return {
+      id: "INFADMIN2901"
+    };
+  }
 }
 
 
@@ -1209,7 +1242,7 @@ async function getEmployeeFromCrm(employeeId) {
     FullName: data.fullName,
     Email: data.email,
     PhoneNo: data.phoneNo,
-    status: data.status === True || data.status === "True" ? 1 : 0
+    status: data.status
   };
 }
 

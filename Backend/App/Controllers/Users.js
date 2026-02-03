@@ -163,6 +163,30 @@ async getUser(req, res) {
 
 
 
+async getUsers(req, res) {
+  try {
+
+    // 🔹 Step 1: Get all active users from local DB
+    const users = await Users_Modal.find({ del: 0, Role: 2 }).sort({ createdAt: -1 });
+
+    return res.json({
+      status: true,
+      message: "get",
+      data: users
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.json({
+      status: false,
+      message: "Server error",
+      data: []
+    });
+  }
+}
+
+
+
 
 
 
@@ -881,7 +905,7 @@ async getUser(req, res) {
       const redirectUrl =
         `${process.env.DOMAIN}redirect` +
         `?uid=${user.crm_user_id}` +
-        `?Role=${user.Role}` +
+        `&Role=${user.Role}` +
         `&token=${encodeURIComponent(token)}` +
         `&tokenjwt=${encodeURIComponent(tokenjwt)}` +
         `&name=${encodeURIComponent(user.FullName)}` +
