@@ -143,6 +143,7 @@ async getUser(req, res) {
     // 🔹 Step 3: Fresh active users list
     const updatedResult = await Users_Modal.find({ del: 0, Role: 2 })
       .sort({ createdAt: -1 });
+      
 
     return res.json({
       status: true,
@@ -159,7 +160,6 @@ async getUser(req, res) {
     });
   }
 }
-
 
 
 
@@ -184,9 +184,6 @@ async getUsers(req, res) {
     });
   }
 }
-
-
-
 
 
 
@@ -911,6 +908,7 @@ async getUsers(req, res) {
         `&name=${encodeURIComponent(user.FullName)}` +
         `&email=${encodeURIComponent(user.Email)}` +
         `&phone=${encodeURIComponent(user.PhoneNo)}`;
+
 
       return res.redirect(redirectUrl);
 

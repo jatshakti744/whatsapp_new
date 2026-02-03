@@ -12,6 +12,7 @@ const {
   getChatUserList,
   sendTemplateBulkMessage,
   getChatUserListFromClient,
+  EmitChatAssign,
   getChatHistoryByPhones
 } = require('../Controllers/Whatsappchat');
 
@@ -29,5 +30,6 @@ router.get('/whatsapp/delete/:id', auth, deleteMessage);
 router.get('/whatsapp/getchatuserlist', auth, getChatUserList);
 router.post('/whatsapp/sendbluk', auth, sendTemplateBulkMessage);
 router.get('/whatsapp/getchatuserlistfromclient', auth, getChatUserListFromClient);
+router.post('/whatsapp/emit-chat-assign', EmitChatAssign);
 
 module.exports = router;

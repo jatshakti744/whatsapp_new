@@ -83,7 +83,7 @@ const WhatsappchatModel = new Schema({
     },
     crm_user_id: {
         type: String,
-        default: null
+         default: null
     },
     old_crm_user_id: {
         type: String,
@@ -93,6 +93,10 @@ const WhatsappchatModel = new Schema({
         type: Number,   // 0 = unread, 1 = read
         default: 0,
     },
+    assign_notified: {
+     type: Boolean,
+     default: false
+    }
 
 }, {
     timestamps: true
