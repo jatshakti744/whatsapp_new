@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import AddClientDialog from "./AddClientDialog";
 import EditClientDialog from "./EditClientDialog";
 import { Pencil, Plus, MoreHorizontal } from "lucide-react";
-import ConfirmAction from "../../../extraComponents/confirmAction";
+import ConfirmAction from "../../../extraComponents/ConfirmAction";
 import {
   DropdownMenu,
   DropdownMenuContent,

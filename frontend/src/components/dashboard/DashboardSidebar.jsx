@@ -64,7 +64,7 @@ const DashboardSidebar = () => {
     try {
       const res = await GetLatestChat(
         user.token,
-        isAdmin ? 1 : user.crm_user_id,
+        String(isAdmin ? 1 : user.crm_user_id),
         search,
       );
 
