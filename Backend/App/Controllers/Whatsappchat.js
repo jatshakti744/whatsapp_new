@@ -439,7 +439,7 @@ class Whatsappchat {
         const employeeId =
           crmUser?.employee_id ||
           crmUser?.id ||
-          (Number(crm_user_id) || 1);
+          (crm_user_id || 1);
 
         let newEmployeeId = null;
         newEmployeeId =
@@ -447,21 +447,21 @@ class Whatsappchat {
           crmUser?.id ||
           null;
 
-        if (Number(crm_user_id) !== 1) {
+        if (crm_user_id !== 1) {
           if (
             newEmployeeId &&
-            Number(newEmployeeId) !== Number(crm_user_id)
+            newEmployeeId !== crm_user_id
           ) {
             await Whatsappchat_Modal.updateMany(
               {
                 phone: new RegExp(`${normalizedPhone}$`),
-                crm_user_id: Number(crm_user_id),
+                crm_user_id: crm_user_id,
                 del: 0
               },
               {
                 $set: {
-                  crm_user_id: Number(newEmployeeId),
-                  old_crm_user_id: Number(crm_user_id)
+                  crm_user_id: newEmployeeId,
+                  old_crm_user_id: crm_user_id
                 }
               }
             );
@@ -687,7 +687,7 @@ class Whatsappchat {
   async getChatUserList(req, res) {
     try {
       let { crm_user_id, search } = req.query;
-      crm_user_id = Number(crm_user_id);
+      crm_user_id = crm_user_id;
 
       // 🔹 Base match
       let matchCondition = {
@@ -968,7 +968,7 @@ class Whatsappchat {
 async getChatUserListFromClient(req, res) {
   try {
     let { crm_user_id, search } = req.query;
-    crm_user_id = Number(crm_user_id);
+    crm_user_id = crm_user_id;
 
     let matchCondition = {
       del: 0,

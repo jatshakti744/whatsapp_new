@@ -882,13 +882,14 @@ async getUser(req, res) {
         const redirectUrl =
           `${process.env.DOMAIN}redirect` +
           `?uid=${user.crm_user_id}` +
+          `&Role=${user.Role}` +                              
           `&token=${encodeURIComponent(token)}` +
           `&tokenjwt=${encodeURIComponent(tokenjwt)}` +
           `&name=${encodeURIComponent(user.FullName)}` +
           `&email=${encodeURIComponent(user.Email)}` +
           `&phone=${encodeURIComponent(user.PhoneNo)}`;
   
-    
+
           
         return res.redirect(redirectUrl);
   
@@ -960,6 +961,7 @@ async getUser(req, res) {
 */
 
 async getCrmContactWithFilter(req, res) {
+
   try {
     const {
       owner_id = "",
@@ -967,6 +969,8 @@ async getCrmContactWithFilter(req, res) {
       page = 1,
       limit = 10
     } = req.body;
+
+
 
     if (!owner_id) {
       return res.json({
@@ -1310,6 +1314,7 @@ async  checkCrmStatus(req, res) {
   }
 }
 
+
 async getCrmContactWithFilterWithClient(req, res) {
   try {
     const {
@@ -1563,6 +1568,8 @@ async getAllClients(req, res) {
 }
 
 
+
+
 }
 
 async function getEmployeeFromCrm(employeeId) {
@@ -1585,7 +1592,7 @@ async function getEmployeeFromCrm(employeeId) {
     FullName: data.fullName,
     Email: data.email,
     PhoneNo: data.phoneNo,
-    status: data.status === True || data.status === "True" ? 1 : 0
+    status: data.status
   };
 }
 
@@ -1627,5 +1634,4 @@ async function fetchContactsByOwner(owner_id, page, limit, search) {
     }
   };
 }
-
 module.exports = new Users();

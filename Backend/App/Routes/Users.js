@@ -22,7 +22,8 @@ const {
     getCrmContactWithFilterWithClient,
     getCrmContactWithFilterUnassignWithClient,
     getCrmContactWithFilterUnassignAllWithClient,
-    getAllClients
+    getAllClients,
+    getUsers
 } = require('../Controllers/Users');
 
 // Public routes
@@ -35,6 +36,8 @@ router.post('/user/reset-password', resetPassword);
 // Protected routes
 router.post('/user/add', auth, AddUser);
 router.get('/user/list', auth, getUser);
+router.get('/user/lists', auth, getUsers);
+
 router.put('/user/update', auth, updateUser);
 router.get('/user/delete/:id', auth, deleteUser);
 router.get('/user/detail/:id', auth, detailUser);
