@@ -37,7 +37,7 @@ export async function MemberList() {
   try {
     const token = localStorage.getItem("tokenjwt");
 
-    const response = await axios.get(`${config.base_url}user/list`, {
+    const response = await axios.get(`${config.base_url}user/lists`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
