@@ -438,7 +438,7 @@ export async function MSGSend(token, formData) {
 export async function GetChatHistoryByPhone(token, phoneno, crm_user_id) {
   try {
     const response = await axios.get(
-      `${config.base_url}whatsapp/getchathistorybyphone/${phoneno}/${crm_user_id}`,
+      `${config.base_url}whatsapp/getchathistorybyphones/${phoneno}/${crm_user_id}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

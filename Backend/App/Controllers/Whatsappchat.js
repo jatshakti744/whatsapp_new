@@ -535,7 +535,7 @@ class Whatsappchat {
           $set: { is_read: 1 }
         }
       );
-
+console.log('query',query);
       const chats = await Whatsappchat_Modal
         .find(query)
         .sort({ createdAt: 1 });
