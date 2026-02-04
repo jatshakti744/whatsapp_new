@@ -57,7 +57,7 @@ class Clients {
       })
 
       await result.save();
-
+   
       const ipaddress = req.ip || req.connection.remoteAddress;
       const addedByUser = await Users_Model.findById(add_by).select('FullName');
       await Logs_Model.create({
@@ -504,6 +504,7 @@ class Clients {
       : null;
 
     // Create log
+     const ipaddress = req.ip || req.connection.remoteAddress;
     await Logs_Model.create({
       message: `Client "${client.FullName}" assigned from "${previousOwner?.FullName || 'Unassigned'}" to "${newOwner?.FullName || 'Unknown'}" by "${performedByUser?.FullName || 'System'}" (${performed_by || 'N/A'})`,
       type: "client_owner_change",
