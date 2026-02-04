@@ -11,11 +11,8 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (!user) {
-      console.log("⚠️ User not found, socket not connecting");
       return;
     }
-
-    console.log("🔌 Connecting socket for user:", user.crm_user_id);
 
     socketRef.current = io(import.meta.env.VITE_SOCKET_URL, {
       transports: ["websocket"],
@@ -26,21 +23,10 @@ export const SocketProvider = ({ children }) => {
     });
 
     socketRef.current.on("connect", () => {
-      console.log("✅ Socket connected:", socketRef.current.id);
-      setSocket(socketRef.current); // ✅ STATE UPDATE KARO
+      setSocket(socketRef.current);
     });
 
-    // socketRef.current.on("disconnect", () => {
-    //   console.log("❌ Socket disconnected");
-    //   setSocket(null);
-    // });
-
-    // socketRef.current.on("connect_error", (error) => {
-    //   console.error("❌ Socket connection error:", error);
-    // });
-
     return () => {
-      console.log("🔌 Cleaning up socket connection");
       socketRef.current?.disconnect();
       socketRef.current = null;
       setSocket(null);

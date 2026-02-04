@@ -7,28 +7,14 @@ import { toast } from "react-hot-toast";
 const WhatsappNotification = () => {
   const socket = useSocket();
 
-  // ✅ YE LOG ADD KARO
-  useEffect(() => {
-    console.log("🔔 Notification component mounted");
-    console.log("🔌 Socket status:", socket ? "Connected" : "Not connected");
-  }, [socket]);
-
   useEffect(() => {
     if (!socket) {
-      console.log("⚠️ Socket not available yet");
       return;
     }
 
-    console.log("👂 Listening for notifications...");
-
-    // Socket listener
     socket.on("clientnotification", (data) => {
-      console.log("📩 Notification received:", data);
-      console.log("📩 Type:", data.type);
-      console.log("📩 Message:", data.message);
 
       if (data.type === "whatsapp_chat") {
-        console.log("✅ WhatsApp notification - showing toast");
 
         toast.custom(
           (t) => (
@@ -78,12 +64,10 @@ const WhatsappNotification = () => {
 
         // Audio notification
         const audio = new Audio("/notification.mp3");
-        audio.play().catch((err) => console.log("Audio play failed:", err));
       }
     });
 
     return () => {
-      console.log("👋 Removing notification listener");
       socket.off("clientnotification");
     };
   }, [socket]);

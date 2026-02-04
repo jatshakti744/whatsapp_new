@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import * as Yup from "yup";
 import ReusableDataTable from "../../../extraComponents/ReusableDataTable";
-import ConfirmAction from "../../../extraComponents/confirmAction";
+import ConfirmAction from "../../../extraComponents/ConfirmAction";
 
 import {
   AddMember,
@@ -72,7 +72,6 @@ const AllMembers = () => {
         });
       }
     } catch (err) {
-      console.log("err", err);
       toast({
         title: "Server Error",
         description: "Unable to add member",
@@ -177,15 +176,18 @@ const AllMembers = () => {
     try {
       const res = await MemberList();
       setMemberList(res?.data || []);
-    } catch (err) {
-      console.log("something went wrong");
-    }
+    } catch (err) {}
   };
   useEffect(() => {
     fetchMemberlist();
   }, []);
 
   const columns = [
+    {
+      name: "S.No",
+      width: "80px",
+      cell: (row, index) => index + 1,
+    },
     {
       name: "Name",
       selector: (row) => row.FullName || row.name,

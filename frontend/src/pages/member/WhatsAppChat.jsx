@@ -17,26 +17,115 @@ import {
   MSGSend,
   GetChatHistoryByPhone,
   GetActiveTemplateList,
-} from "../../../services/AdminServices";
+} from "../../services/AdminServices";
 import { Check, CheckCheck } from "lucide-react";
 import { io } from "socket.io-client";
+import { toast } from "sonner";
 
-const WhatsappChatAdmin = () => {
+// ✅ Template Modal Component (Extracted at top like Admin)
+const TemplateModal = ({
+  open,
+  onClose,
+  templates,
+  loadingTemplates,
+  selectedTemplate,
+  setSelectedTemplate,
+  templateParams,
+  setTemplateParams,
+  sending,
+  sendTemplateMessage,
+}) => {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* HEADER */}
+        <div className="flex justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">Select Template</h2>
+          <button onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* BODY */}
+        <div className="p-4 space-y-4">
+          <select
+            className="w-full border p-2 rounded"
+            value={selectedTemplate?._id || ""}
+            onChange={(e) => {
+              const t = templates.find((x) => x._id === e.target.value);
+              setSelectedTemplate(t);
+              setTemplateParams("");
+            }}
+          >
+            <option value="">-- Select Template --</option>
+            {templates.map((t) => (
+              <option key={t._id} value={t._id}>
+                {t.template_name}
+              </option>
+            ))}
+          </select>
+
+          {selectedTemplate && (
+            <>
+              <textarea
+                readOnly
+                value={selectedTemplate.message}
+                rows={5}
+                className="w-full border p-2 bg-gray-50"
+              />
+
+              {/* ✅ autoFocus added */}
+              <Input
+                autoFocus
+                value={templateParams}
+                onChange={(e) => setTemplateParams(e.target.value)}
+                placeholder="Ex: 1##2##3##4"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Separate parameters with ## (e.g., param1##param2##param3)
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex justify-end gap-2 p-4 border-t">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!selectedTemplate || sending}
+            onClick={sendTemplateMessage}
+          >
+            {sending ? "Sending..." : "Send"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const WhatsappChat = () => {
   const { state } = useLocation();
   const client = state?.client;
-
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
-  // Image lightbox states
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [allImages, setAllImages] = useState([]);
 
-  // Template modal states
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
@@ -50,7 +139,6 @@ const WhatsappChatAdmin = () => {
   const token = localStorage.getItem("tokenjwt");
   const sender_id = localStorage.getItem("uid");
 
-  /* ---------------- EXTRACT ALL IMAGES FROM MESSAGES ---------------- */
   useEffect(() => {
     const images = messages
       .filter((m) => m.message_type === "image" && m.media_url)
@@ -62,7 +150,6 @@ const WhatsappChatAdmin = () => {
     setAllImages(images);
   }, [messages]);
 
-  /* ---------------- FETCH ACTIVE TEMPLATES ---------------- */
   const fetchTemplates = async () => {
     setLoadingTemplates(true);
     try {
@@ -75,9 +162,8 @@ const WhatsappChatAdmin = () => {
     }
   };
 
-  /* ---------------- FETCH HISTORY ---------------- */
   const fetchHistory = async (skipIfFetching = false) => {
-    if (!client?.mobile) return;
+    if (!client?.PhoneNo) return;
 
     if (skipIfFetching && isFetchingRef.current) return;
 
@@ -85,7 +171,7 @@ const WhatsappChatAdmin = () => {
     setLoading(true);
 
     try {
-      const res = await GetChatHistoryByPhone(token, client.mobile, sender_id);
+      const res = await GetChatHistoryByPhone(token, client.PhoneNo, sender_id);
       setMessages(res.data || []);
     } catch (err) {
       console.error("❌ Fetch history error:", err);
@@ -95,16 +181,14 @@ const WhatsappChatAdmin = () => {
     }
   };
 
-  /* ---------------- AUTO SCROLL TO BOTTOM (NO ANIMATION) ---------------- */
   useEffect(() => {
     if (messages.length > 0) {
       bottomRef.current?.scrollIntoView({ behavior: "auto" });
     }
   }, [messages]);
 
-  /* ---------------- SOCKET CONNECTION ---------------- */
   useEffect(() => {
-    if (!client?.mobile) return;
+    if (!client?.PhoneNo) return;
 
     fetchHistory();
 
@@ -115,22 +199,17 @@ const WhatsappChatAdmin = () => {
     const socket = socketRef.current;
 
     socket.on("clientnotification", (data) => {
-      console.log("🔔 Socket received:", data);
+
 
       if (!data) return;
 
-      if (data.phone?.endsWith(client.mobile)) {
+      if (data.phone?.endsWith(client.PhoneNo)) {
         if (data.type === "whatsapp_chat") {
-          console.log("📨 New chat message received");
+
           fetchHistory(true);
         }
 
         if (data.type === "whatsapp_status") {
-          console.log("✅ Status update:", {
-            status: data.status,
-            messageId: data.message_id,
-            error: data.error,
-          });
 
           setMessages((prev) => {
             const updated = prev.map((m) =>
@@ -140,10 +219,9 @@ const WhatsappChatAdmin = () => {
                     status: data.status,
                     whatsapp_msg_error: data.error || null,
                   }
-                : m
+                : m,
             );
 
-            console.log("🔄 Messages array updated");
             return updated;
           });
         }
@@ -151,11 +229,9 @@ const WhatsappChatAdmin = () => {
     });
 
     socket.on("connect", () => {
-      console.log("✅ Socket connected");
     });
 
     socket.on("disconnect", () => {
-      console.log("❌ Socket disconnected");
     });
 
     socket.on("error", (err) => {
@@ -163,22 +239,20 @@ const WhatsappChatAdmin = () => {
     });
 
     return () => {
-      console.log("🔌 Disconnecting socket");
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [client?.mobile, token, sender_id]);
+  }, [client?.PhoneNo, token, sender_id]);
 
-  /* ---------------- SEND MESSAGE ---------------- */
   const sendMessage = async () => {
     if (!text && !file) return;
 
     setSending(true);
 
     try {
-      const phoneNumber = client.mobile.startsWith("91")
-        ? client.mobile
-        : `91${client.mobile}`;
+      const phoneNumber = client.PhoneNo.startsWith("91")
+        ? client.PhoneNo
+        : `91${client.PhoneNo}`;
 
       const formData = new FormData();
       formData.append("phone", phoneNumber);
@@ -195,19 +269,29 @@ const WhatsappChatAdmin = () => {
       setText("");
       setFile(null);
 
+      // ✅ Better file type detection like Admin
       if (response.data?._id) {
         const newMsg = {
           _id: response.data._id,
           message: text,
-          message_type: file ? "image" : "text",
-          media_url: file ? URL.createObjectURL(file) : null,
+          message_type: file
+            ? file.type.startsWith("image/")
+              ? "image"
+              : file.type.startsWith("video/")
+                ? "video"
+                : "document"
+            : "text",
+          media_url:
+            response.data.media_url ||
+            (file?.type.startsWith("image/")
+              ? URL.createObjectURL(file)
+              : null),
           sendto: 1,
           status: "sent",
           createdAt: new Date().toISOString(),
         };
 
         setMessages((prev) => [...prev, newMsg]);
-        console.log("📤 Message sent and added to UI");
       } else {
         setTimeout(() => fetchHistory(), 500);
       }
@@ -219,68 +303,64 @@ const WhatsappChatAdmin = () => {
     }
   };
 
-  /* ---------------- SEND TEMPLATE MESSAGE ---------------- */
+  // ✅ Enhanced error handling like Admin
   const sendTemplateMessage = async () => {
     if (!selectedTemplate) return;
 
     setSending(true);
 
     try {
-      const phoneNumber = client.mobile.startsWith("91")
-        ? client.mobile
-        : `91${client.mobile}`;
+      const phoneNumber = client.PhoneNo.startsWith("91")
+        ? client.PhoneNo
+        : `91${client.PhoneNo}`;
 
       const formData = new FormData();
       formData.append("phone", phoneNumber);
-      formData.append("message", "");
+      formData.append("message", selectedTemplate.message);
       formData.append("message_type", "template");
-      formData.append("sender_type", "admin");
+      formData.append("sender_type", "employee");
       formData.append("sender_id", sender_id);
       formData.append("sendto", "1");
       formData.append("is_template", "true");
       formData.append("template_name", selectedTemplate.template_name);
+      formData.append("crm_user_id", sender_id);
 
       if (templateParams.trim()) {
         formData.append("template_params", templateParams);
       }
 
-      const response = await MSGSend(token, formData);
+      const res = await MSGSend(token, formData);
 
-      // Close modal and reset
+      if (res?.status === false) {
+        toast.error("Failed to send template");
+        setSending(false);
+        return;
+      }
+
+      if (res?.status === 500) {
+        toast.error("Failed to send template");
+        setSending(false);
+        return;
+      }
+
       setTemplateModalOpen(false);
       setSelectedTemplate(null);
       setTemplateParams("");
 
-      if (response.data?._id) {
-        const newMsg = {
-          _id: response.data._id,
-          message: `Template: ${selectedTemplate.template_name}`,
-          message_type: "template",
-          sendto: 1,
-          status: "sent",
-          createdAt: new Date().toISOString(),
-        };
-
-        setMessages((prev) => [...prev, newMsg]);
-        console.log("📤 Template message sent");
-      } else {
-        setTimeout(() => fetchHistory(), 500);
-      }
+      setTimeout(fetchHistory, 300);
     } catch (err) {
-      console.error("❌ Send template error:", err);
-      fetchHistory();
+      console.error("❌ Template send error:", err);
+      toast.error(err?.response?.data?.message || "WhatsApp message failed");
     } finally {
       setSending(false);
     }
   };
 
-  /* ---------------- OPEN TEMPLATE MODAL ---------------- */
   const openTemplateModal = () => {
     setTemplateModalOpen(true);
     fetchTemplates();
   };
 
-  /* ---------------- OPEN IMAGE LIGHTBOX ---------------- */
   const openLightbox = (imageUrl) => {
     const imageIndex = allImages.findIndex((img) => img.url === imageUrl);
     if (imageIndex !== -1) {
@@ -289,18 +369,16 @@ const WhatsappChatAdmin = () => {
     }
   };
 
-  /* ---------------- NAVIGATE IMAGES IN LIGHTBOX ---------------- */
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
   };
 
   const prevImage = () => {
     setCurrentImageIndex(
-      (prev) => (prev - 1 + allImages.length) % allImages.length
+      (prev) => (prev - 1 + allImages.length) % allImages.length,
     );
   };
 
-  /* ---------------- KEYBOARD NAVIGATION ---------------- */
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!lightboxOpen) return;
@@ -314,7 +392,6 @@ const WhatsappChatAdmin = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxOpen, allImages.length]);
 
-  /* ---------------- STATUS ICON COMPONENT ---------------- */
   const MessageStatusIcon = ({ status }) => {
     switch (status) {
       case "sent":
@@ -328,7 +405,6 @@ const WhatsappChatAdmin = () => {
     }
   };
 
-  /* ---------------- FORMAT TIME ---------------- */
   const formatTime = (dateString) => {
     if (!dateString) return "";
     return new Date(dateString).toLocaleTimeString("en-IN", {
@@ -338,7 +414,6 @@ const WhatsappChatAdmin = () => {
     });
   };
 
-  /* ---------------- FORMAT DATE SEPARATOR ---------------- */
   const getDateLabel = (dateString) => {
     if (!dateString) return "";
 
@@ -364,7 +439,6 @@ const WhatsappChatAdmin = () => {
     }
   };
 
-  /* ---------------- CHECK IF NEED DATE SEPARATOR ---------------- */
   const shouldShowDateSeparator = (currentMsg, previousMsg) => {
     if (!previousMsg) return true;
 
@@ -374,7 +448,6 @@ const WhatsappChatAdmin = () => {
     return currentDate !== previousDate;
   };
 
-  /* ---------------- MEDIA RENDERER (WHATSAPP STYLE) ---------------- */
   const MediaRenderer = ({ msg }) => {
     if (msg.message_type === "image") {
       return msg.media_url ? (
@@ -443,144 +516,6 @@ const WhatsappChatAdmin = () => {
     return null;
   };
 
-  /* ---------------- TEMPLATE MODAL ---------------- */
-  const TemplateModal = () => {
-    if (!templateModalOpen) return null;
-
-    return (
-      <div
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-        onClick={() => setTemplateModalOpen(false)}
-      >
-        <div
-          className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <FileText size={20} />
-              Select Template
-            </h2>
-            <button
-              onClick={() => setTemplateModalOpen(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-4 overflow-y-auto max-h-[calc(80vh-140px)]">
-            {loadingTemplates ? (
-              <div className="text-center py-8 text-gray-500">
-                Loading templates...
-              </div>
-            ) : templates.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No active templates found
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Template Dropdown */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Choose Template
-                  </label>
-                  <select
-                    className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    value={selectedTemplate?._id || ""}
-                    onChange={(e) => {
-                      const template = templates.find(
-                        (t) => t._id === e.target.value
-                      );
-                      setSelectedTemplate(template);
-                      setTemplateParams("");
-                    }}
-                  >
-                    <option value="">-- Select Template --</option>
-                    {templates.map((template) => (
-                      <option key={template._id} value={template._id}>
-                        {template.template_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Template Details */}
-                {selectedTemplate && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Template Name (Read-only)
-                      </label>
-                      <Input
-                        value={selectedTemplate.template_name}
-                        readOnly
-                        className="bg-gray-50 cursor-not-allowed"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Template Message (Read-only)
-                      </label>
-                      <textarea
-                        value={
-                          selectedTemplate.message || "No message available"
-                        }
-                        readOnly
-                        rows={6}
-                        className="w-full border rounded-lg p-2 bg-gray-50 cursor-not-allowed resize-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Template Parameters
-                      </label>
-                      <Input
-                        value={templateParams}
-                        onChange={(e) => setTemplateParams(e.target.value)}
-                        placeholder="Ex: 1##2##3##4"
-                        className="font-mono"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Separate parameters with ## (e.g.,
-                        param1##param2##param3)
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-end gap-2 p-4 border-t bg-gray-50">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setTemplateModalOpen(false);
-                setSelectedTemplate(null);
-                setTemplateParams("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={sendTemplateMessage}
-              disabled={!selectedTemplate || sending}
-            >
-              {sending ? "Sending..." : "Send Template"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  /* ---------------- IMAGE LIGHTBOX MODAL ---------------- */
   const ImageLightbox = () => {
     if (!lightboxOpen || allImages.length === 0) return null;
 
@@ -591,7 +526,6 @@ const WhatsappChatAdmin = () => {
         className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center"
         onClick={() => setLightboxOpen(false)}
       >
-        {/* Close Button */}
         <button
           onClick={() => setLightboxOpen(false)}
           className="absolute top-4 right-4 text-white hover:text-gray-300 z-50"
@@ -599,12 +533,10 @@ const WhatsappChatAdmin = () => {
           <X size={32} />
         </button>
 
-        {/* Image Counter */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded-full text-sm">
           {currentImageIndex + 1} / {allImages.length}
         </div>
 
-        {/* Previous Button */}
         {allImages.length > 1 && (
           <button
             onClick={(e) => {
@@ -617,7 +549,6 @@ const WhatsappChatAdmin = () => {
           </button>
         )}
 
-        {/* Image */}
         <img
           src={currentImage.url}
           alt="Full size"
@@ -625,7 +556,6 @@ const WhatsappChatAdmin = () => {
           className="max-w-[90vw] max-h-[90vh] object-contain"
         />
 
-        {/* Next Button */}
         {allImages.length > 1 && (
           <button
             onClick={(e) => {
@@ -638,7 +568,6 @@ const WhatsappChatAdmin = () => {
           </button>
         )}
 
-        {/* Image Info */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-4 py-2 rounded-full">
           {formatTime(currentImage.time)}
         </div>
@@ -646,15 +575,14 @@ const WhatsappChatAdmin = () => {
     );
   };
 
-  /* ---------------- MAIN RENDER ---------------- */
   return (
     <div className="flex h-screen">
       <DashboardSidebar />
 
       <div className="flex-1 flex flex-col">
         <DashboardHeader
-          title={`${client?.fname || ""} ${client?.lname || ""}`}
-          subtitle={`+91${client?.mobile}`}
+          title={`${client?.FullName || ""}`}
+          subtitle={`${client?.PhoneNo}`}
         />
 
         {/* CHAT AREA */}
@@ -674,12 +602,11 @@ const WhatsappChatAdmin = () => {
               const showCaption = m.caption && m.caption !== "null";
               const showDateSeparator = shouldShowDateSeparator(
                 m,
-                messages[index - 1]
+                messages[index - 1],
               );
 
               return (
                 <div key={m._id}>
-                  {/* DATE SEPARATOR */}
                   {showDateSeparator && (
                     <div className="flex justify-center my-4">
                       <div className="bg-white/90 px-4 py-1 rounded-full shadow-sm text-xs text-gray-600 font-medium">
@@ -688,7 +615,6 @@ const WhatsappChatAdmin = () => {
                     </div>
                   )}
 
-                  {/* MESSAGE BUBBLE */}
                   <div
                     className={`flex mb-2 ${
                       isMe ? "justify-end" : "justify-start"
@@ -757,7 +683,6 @@ const WhatsappChatAdmin = () => {
 
         {/* INPUT AREA */}
         <div className="p-3 border-t flex gap-2 items-center bg-white">
-          {/* File Attachment */}
           <label className="cursor-pointer hover:text-blue-600 transition-colors">
             <Paperclip size={18} />
             <input
@@ -768,7 +693,6 @@ const WhatsappChatAdmin = () => {
             />
           </label>
 
-          {/* Template Button */}
           <button
             onClick={openTemplateModal}
             className="cursor-pointer hover:text-blue-600 transition-colors"
@@ -828,13 +752,27 @@ const WhatsappChatAdmin = () => {
         </div>
       </div>
 
-      {/* TEMPLATE MODAL */}
-      <TemplateModal />
+      {/* ✅ Template Modal (same props as Admin) */}
+      <TemplateModal
+        open={templateModalOpen}
+        onClose={() => {
+          setTemplateModalOpen(false);
+          setSelectedTemplate(null);
+          setTemplateParams("");
+        }}
+        templates={templates}
+        loadingTemplates={loadingTemplates}
+        selectedTemplate={selectedTemplate}
+        setSelectedTemplate={setSelectedTemplate}
+        templateParams={templateParams}
+        setTemplateParams={setTemplateParams}
+        sending={sending}
+        sendTemplateMessage={sendTemplateMessage}
+      />
 
-      {/* IMAGE LIGHTBOX */}
       <ImageLightbox />
     </div>
   );
 };
 
-export default WhatsappChatAdmin;
+export default WhatsappChat;

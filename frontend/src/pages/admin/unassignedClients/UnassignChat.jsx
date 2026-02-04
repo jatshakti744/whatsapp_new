@@ -9,11 +9,18 @@ import {
 import { useUser } from "@/context/UserContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const EXPORT_COLUMNS = [
-  { key: "phone", label: "Phone" },
+  { key: "FullName", label: "Full Name" },
+  { key: "PhoneNo", label: "Phone No" },
   { key: "createdAt", label: "Received At" },
-  { key: "message_type", label: "Message Type" },
 ];
 
 const exportToCSV = (rows, fileName = "unassigned_chats.csv") => {
@@ -32,7 +39,7 @@ const exportToCSV = (rows, fileName = "unassigned_chats.csv") => {
         value = new Date(value).toLocaleString();
       }
       return `"${value}"`;
-    }).join(",")
+    }).join(","),
   );
 
   const csv = [headers, ...csvRows].join("\n");
@@ -52,9 +59,7 @@ const exportToCSV = (rows, fileName = "unassigned_chats.csv") => {
 };
 
 const UnassignedChats = () => {
-  const { token } = useUser();
   const navigate = useNavigate();
-
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -62,6 +67,7 @@ const UnassignedChats = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalRows, setTotalRows] = useState(0);
+  const token = localStorage.getItem("tokenjwt");
 
   const fetchUnassignedChats = async () => {
     setLoading(true);
@@ -136,13 +142,13 @@ const UnassignedChats = () => {
       cell: (row, index) => <span>{(page - 1) * limit + index + 1}</span>,
     },
     {
-      name: "Phone",
-      selector: (row) => row.phone || "—",
+      name: "Full Name",
+      selector: (row) => row.FullName || "—",
       sortable: true,
     },
     {
-      name: "Message Type",
-      selector: (row) => row.message_type || "—",
+      name: "Phone No",
+      selector: (row) => row.PhoneNo || "—",
       sortable: true,
     },
     {
@@ -151,18 +157,24 @@ const UnassignedChats = () => {
         row.createdAt ? new Date(row.createdAt).toLocaleString() : "—",
     },
     {
-      name: "Action",
+      name: "Actions",
+      width: "120px",
       cell: (row) => (
-        <button
-          className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:opacity-90"
-          onClick={() => handleChat(row)}
-        >
-          Chat
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleChat(row)}>
+              Chat
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
     },
   ];
 
@@ -175,13 +187,13 @@ const UnassignedChats = () => {
 
         <main className="flex-1 overflow-auto p-6">
           <div className="flex items-center justify-between mb-4">
-            {/* Left side: Search is inside ReusableDataTable */}
             <div />
 
-            {/* Right side: Export button */}
-            <Button onClick={handleExport} disabled={loading}>
-              {search ? "Export Search Results" : "Export All"}
-            </Button>
+            {totalRows > 0 && (
+              <Button onClick={handleExport} disabled={loading}>
+                {search ? "Export Search Results" : "Export All"}
+              </Button>
+            )}
           </div>
 
           <ReusableDataTable

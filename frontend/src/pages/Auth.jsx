@@ -55,6 +55,7 @@ const Auth = () => {
         Email: data.Email,
         PhoneNo: data.PhoneNo,
         role,
+        crm_user_id: data.id,
       };
 
       localStorage.setItem("user", JSON.stringify(userData));

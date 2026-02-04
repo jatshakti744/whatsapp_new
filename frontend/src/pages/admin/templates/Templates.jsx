@@ -33,8 +33,8 @@ const Template = () => {
 
       setData((prev) =>
         prev.map((item) =>
-          item._id === row._id ? { ...item, status: newStatus } : item
-        )
+          item._id === row._id ? { ...item, status: newStatus } : item,
+        ),
       );
 
       const res = await StatusChange(
@@ -42,7 +42,7 @@ const Template = () => {
           id: row._id,
           status: newStatus,
         },
-        token
+        token,
       );
 
       if (res?.status) {
@@ -58,13 +58,11 @@ const Template = () => {
         throw new Error("Status update failed");
       }
     } catch (err) {
-      console.log(err);
-
       // 🔁 Rollback if API fails
       setData((prev) =>
         prev.map((item) =>
-          item._id === row._id ? { ...item, status: row.status } : item
-        )
+          item._id === row._id ? { ...item, status: row.status } : item,
+        ),
       );
     } finally {
       setUpdatingId(null);
@@ -72,7 +70,6 @@ const Template = () => {
   };
 
   const handleDelete = async (id) => {
-    console.log(id);
     const res = await DeleteTemplate(id, token);
     if (res?.status) {
       toast({
@@ -93,7 +90,6 @@ const Template = () => {
         setData(res.data);
       }
     } catch (err) {
-      console.log(err);
     } finally {
       setLoading(false);
     }

@@ -507,7 +507,7 @@ class Clients {
     await Logs_Model.create({
       message: `Client "${client.FullName}" assigned from "${previousOwner?.FullName || 'Unassigned'}" to "${newOwner?.FullName || 'Unknown'}" by "${performedByUser?.FullName || 'System'}" (${performed_by || 'N/A'})`,
       type: "client_owner_change",
-      ipaddress // make sure this is defined in middleware
+      ipaddress:null // make sure this is defined in middleware
     });
 
     return res.json({

@@ -45,24 +45,20 @@ export default function SocketToast({ children }) {
     socket.on("clientnotification", (data) => {
       if (!data) return;
 
-      console.log("📩 Received notification:", data);
-
       if (data.type !== "whatsapp_chat") {
         return;
       }
 
       if (data.sender_type && data.sender_type !== "client") {
-        console.log("🚫 Skipping notification - sender is not client");
         return;
       }
 
       if (
         data.crm_user_id &&
         user?.crm_user_id &&
-        Number(data.crm_user_id) !== 1 &&
-        Number(data.crm_user_id) !== Number(user.crm_user_id)
+        data.crm_user_id !== 1 &&
+        data.crm_user_id !== user.crm_user_id
       ) {
-        console.log("🚫 Skipping notification - not for this user");
         return;
       }
 
@@ -85,13 +81,11 @@ export default function SocketToast({ children }) {
         </div>,
         {
           autoClose: 5000,
-        }
+        },
       );
     });
 
-    socket.on("whatsapp_status_update", (data) => {
-      console.log("📊 Status update:", data);
-    });
+    socket.on("whatsapp_status_update", (data) => {});
 
     socket.on("disconnect", (reason) => {
       console.warn("⚠️ Socket disconnected:", reason);
@@ -99,11 +93,6 @@ export default function SocketToast({ children }) {
         socket.connect();
       }
     });
-
-    // socket.on("connect_error", (err) => {
-    //   console.error("❌ Socket error:", err.message);
-    //   toast.error("Socket connection error", { autoClose: 2000 });
-    // });
 
     return () => {
       socket.disconnect();

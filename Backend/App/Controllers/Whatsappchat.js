@@ -1059,14 +1059,14 @@ console.log('query',query);
 async getChatUserListFromClient(req, res) {
   try {
     let { crm_user_id, search } = req.query;
-    crm_user_id = Number(crm_user_id);
+    // crm_user_id = Number(crm_user_id);
 
     let matchCondition = {
       del: 0,
       ActiveStatus: 1
     };
 
-    if (crm_user_id && crm_user_id !== 1) {
+    if (crm_user_id && crm_user_id != 1) {
       matchCondition.crm_user_id = crm_user_id;
     }
 

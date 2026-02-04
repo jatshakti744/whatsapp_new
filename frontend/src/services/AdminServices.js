@@ -168,40 +168,6 @@ export async function EditClient(data) {
   }
 }
 
-export async function GetDashboardCount(token) {
-  try {
-    const response = await axios.get(`${config.base_url}dashboard/getcount`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.log("Error fetching dashboard count:", error.response || error);
-    throw error;
-  }
-}
-
-export async function GetUserDetails(token, userId) {
-  try {
-    const token = localStorage.getItem("tokenjwt");
-    const response = await axios.get(
-      `${config.base_url}user/detail/${userId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response.data;
-  } catch (error) {
-    console.log("Error fetching dashboard count:", error.response || error);
-    throw error;
-  }
-}
-
 export async function DeleteClient(id, add_by) {
   const token = localStorage.getItem("tokenjwt");
 
@@ -234,98 +200,6 @@ export async function UpdateClientStatus(id, status, add_by) {
   return res.data;
 }
 
-export async function UpdateMyProfile(token, data) {
-  try {
-    const response = await axios.post(
-      `${config.base_url}user/update-profile`,
-      data,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response?.data;
-  } catch (error) {
-    console.log("Error While Updating Data:", error.response || error);
-    throw error;
-  }
-}
-
-export async function GetBasicSettings(token) {
-  try {
-    const response = await axios.get(`${config.base_url}basicsetting/detail`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-    return response?.data;
-  } catch {
-    console.log("Error fetching Basic Settings", error);
-    throw error;
-  }
-}
-
-export async function UpdateBasicSettings(token, data) {
-  try {
-    const response = await axios.post(
-      `${config.base_url}basicsetting/add`,
-      data,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // "Content-Type": "application/json",
-        },
-      },
-    );
-    return response?.data;
-  } catch (error) {
-    console.log("Error Update Basic Setting", error);
-    throw error;
-  }
-}
-
-export async function ChangePassword(data) {
-  try {
-    const token = localStorage.getItem("tokenjwt");
-    const response = await axios.post(
-      `${config.base_url}user/change-password`,
-      data,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response.data;
-  } catch (error) {
-    console.log("Error change password:", error.response || error);
-    throw error;
-  }
-}
-
-export async function UpdatePermission(token, id, data) {
-  try {
-    const response = await axios.post(
-      `${config.base_url}user/update-permissions`,
-      { id, permissions: data.permissions },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response?.data;
-  } catch (error) {
-    console.log("Error Update Permission", error);
-    throw error;
-  }
-}
-
 export async function GetActiveUser(token) {
   try {
     const response = await axios.get(`${config.base_url}user/activeuser`, {
@@ -337,43 +211,6 @@ export async function GetActiveUser(token) {
     return response?.data;
   } catch (error) {
     console.log("Error Update Permission", error);
-    throw error;
-  }
-}
-
-export async function ClientDeleteListWithFilters(token) {
-  try {
-    const response = await axios.post(
-      `${config.base_url}client/deletelistwithfilters`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response?.data;
-  } catch (error) {
-    console.log("Error fetching deleted client list:", error.response || error);
-    throw error;
-  }
-}
-
-export async function ClientWithFiltersExcle(token, data) {
-  try {
-    const response = await axios.get(
-      `${config.base_url}client/listwithfilterexcel`,
-      data,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response?.data;
-  } catch (error) {
-    console.log("Error fetching deleted client list:", error.response || error);
     throw error;
   }
 }
@@ -399,6 +236,9 @@ export async function ChangeClientOwner(token, data) {
 
 export async function GetCRMCContactWithFilter(token, data) {
   try {
+    console.log("Data", data);
+    console.log("token", token);
+
     const response = await axios.post(
       `${config.base_url}user/getallclients`,
       data,
@@ -424,7 +264,6 @@ export async function MSGSend(token, formData) {
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          // "Content-Type": "application/json",
         },
       },
     );
@@ -657,6 +496,24 @@ export async function SendBulkTemplate(token, payload) {
     return response?.data;
   } catch (error) {
     console.log("Error while sending bulk template", error);
+    return error.response?.data;
+  }
+}
+
+export async function AddBulkClient(token, formData) {
+  try {
+    const response = await axios.post(
+      `${config.base_url}client/bulkuploadclients`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.log("Bulk client upload error", error);
     return error.response?.data;
   }
 }

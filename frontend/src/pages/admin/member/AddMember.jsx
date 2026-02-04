@@ -37,8 +37,6 @@ const AddMember = () => {
   ];
 
   const handleSubmit = (values) => {
-    console.log("Form Submitted:", values);
-    // For example, after submitting, you can navigate to a different page
     navigate("/members");
   };
 

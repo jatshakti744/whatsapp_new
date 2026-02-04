@@ -8,22 +8,43 @@ import ReusableForm from "@/extraComponents/ReusableForm";
 import * as Yup from "yup";
 
 const EditClientDialog = ({ open, setOpen, clientdetail, onSubmit }) => {
-  // if (!member) return null;
-
   const initialValues = {
     FullName: clientdetail.FullName || "",
     PhoneNo: clientdetail.PhoneNo || "",
   };
 
   const validationSchema = Yup.object({
-    FullName: Yup.string().required("Full name required"),
-    PhoneNo: Yup.string().required("Phone required"),
+    FullName: Yup.string()
+      .matches(/^[A-Za-z\s]+$/, "Only alphabets allowed")
+      .required("Full name required"),
+
+    PhoneNo: Yup.string()
+      .matches(/^[0-9]{10}$/, "Phone number must be 10 digits")
+      .required("Phone required"),
   });
 
   const fields = [
-    { name: "FullName", label: "Full Name" },
-    // { name: "UserName", label: "Username", disabled: true },
-    { name: "PhoneNo", label: "Phone" },
+    {
+      name: "FullName",
+      label: "Full Name",
+      inputProps: {
+        onInput: (e) => {
+          e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+        },
+      },
+    },
+    {
+      name: "PhoneNo",
+      label: "Phone",
+      inputProps: {
+        maxLength: 10,
+        inputMode: "numeric",
+        pattern: "[0-9]*",
+        onInput: (e) => {
+          e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+        },
+      },
+    },
   ];
 
   return (

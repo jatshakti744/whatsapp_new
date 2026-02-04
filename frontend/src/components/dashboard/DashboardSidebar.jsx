@@ -1,10 +1,7 @@
 import {
   MessageSquare,
-  LayoutDashboard,
   Users,
   UserCog,
-  Settings,
-  LogOut,
   ChevronLeft,
   Search,
   X,
@@ -18,19 +15,16 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { GetLatestChat } from "@/services/AdminServices";
 import { Badge } from "@/components/ui/badge";
 import { io } from "socket.io-client";
-import template from "../../pages/admin/templates/Templates";
+import logo from "../favicon/_file5c2e1123e834d-site-logo.png";
 
 const adminNavItems = [
-  // { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Users, label: "Clients", href: "/dashboard/allclients" },
   { icon: UserCog, label: "Members", href: "/dashboard/allmembers" },
   { icon: UserMinus, label: "Unassign Chat", href: "/dashboard/unassignchat" },
-  { icon: MessageSquare, label: "Templates", href: "/dashboard/template" }, // { icon: Template, label: "Templates", href: "/dashboard/templates" },
-  // { icon: Settings, label: "Settings", href: "/dashboard/basicsetting" },
+  { icon: MessageSquare, label: "Templates", href: "/dashboard/template" },
 ];
 
 const memberNavItems = [
-  // { icon: LayoutDashboard, label: "Dashboard", href: "/member/dashboard" },
   { icon: Users, label: "My Clients", href: "/member/clients" },
 ];
 
@@ -51,20 +45,19 @@ const DashboardSidebar = () => {
       name: localStorage.getItem("name"),
       email: localStorage.getItem("email"),
       token: localStorage.getItem("tokenjwt"),
-      crm_user_id: Number(localStorage.getItem("uid")),
+      crm_user_id: localStorage.getItem("uid"),
     };
   }, []);
 
   const isAdmin = user.role === "admin";
   const navItems = isAdmin ? adminNavItems : memberNavItems;
-  const basePath = isAdmin ? "/dashboard" : "/member/dashboard";
 
   const fetchChatUsers = async (search = "") => {
     setLoadingChats(true);
     try {
       const res = await GetLatestChat(
         user.token,
-        String(isAdmin ? "66bc8b0c3fb6f1724c02bfec" : user.crm_user_id),
+        String(isAdmin ? 1 : user.crm_user_id),
         search,
       );
 
@@ -78,6 +71,20 @@ const DashboardSidebar = () => {
     }
   };
 
+  const normalizePhone = (phone) => {
+    if (!phone) return "";
+
+    // remove non-digits
+    let cleaned = phone.replace(/\D/g, "");
+
+    // if starts with 91 and length > 10
+    if (cleaned.startsWith("91") && cleaned.length > 10) {
+      cleaned = cleaned.slice(-10);
+    }
+
+    return cleaned;
+  };
+
   useEffect(() => {
     socketRef.current = io("https://apiwhatsapp.tradestreet.in:1001", {
       transports: ["websocket"],
@@ -85,9 +92,7 @@ const DashboardSidebar = () => {
 
     const socket = socketRef.current;
 
-    socket.on("connect", () => {
-      console.log("Socket connected");
-    });
+    socket.on("connect", () => {});
 
     socket.on("clientnotification", (data) => {
       if (!data) return;
@@ -101,7 +106,8 @@ const DashboardSidebar = () => {
           const updated = [...prev];
           const chatIndex = updated.findIndex(
             (c) =>
-              data.phone && c.phone.endsWith(data.phone.replace(/^91/, "")),
+              data.phone &&
+              normalizePhone(c.phone) === normalizePhone(data.phone),
           );
 
           if (chatIndex !== -1) {
@@ -126,9 +132,7 @@ const DashboardSidebar = () => {
       }
     });
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
+    socket.on("disconnect", () => {});
 
     return () => {
       socket.disconnect();
@@ -153,23 +157,15 @@ const DashboardSidebar = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // const handleLogout = () => {
-  //   localStorage.clear();
-  //   window.location.href = "https://crmplus.in/crm";
-  // };
-
   const openChat = (chat) => {
-    setChatUsers((prev) =>
-      prev.map((c) => (c.phone === chat.phone ? { ...c, unreadCount: 0 } : c)),
-    );
-
-    const phoneNumber = chat.phone.replace(/^91/, "");
+    const phoneNumber = normalizePhone(chat.phone);
 
     navigate(isAdmin ? "/dashboard/whatsappadmin" : "/dashboard/whatsapp", {
       state: {
         client: {
+          PhoneNo: phoneNumber,
+          FullName: chat.client_name || "",
           mobile: phoneNumber,
-          name: chat.client_name,
         },
       },
     });
@@ -205,7 +201,6 @@ const DashboardSidebar = () => {
     const startOfYesterday = new Date(startOfToday);
     startOfYesterday.setDate(startOfToday.getDate() - 1);
 
-    // 👉 Today → time
     if (messageDate >= startOfToday) {
       return messageDate.toLocaleTimeString("en-IN", {
         hour: "2-digit",
@@ -214,7 +209,6 @@ const DashboardSidebar = () => {
       });
     }
 
-    // 👉 Yesterday → Yesterday + time (NOT date)
     if (messageDate >= startOfYesterday && messageDate < startOfToday) {
       const timePart = messageDate.toLocaleTimeString("en-IN", {
         hour: "2-digit",
@@ -225,7 +219,6 @@ const DashboardSidebar = () => {
       return `Yesterday, ${timePart}`;
     }
 
-    // 👉 Older → date only
     return messageDate.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -301,19 +294,15 @@ const DashboardSidebar = () => {
           <div className="flex items-center gap-3">
             {/* Logo */}
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white">
-              <img
-                className="w-6 h-6 object-contain"
-                src="/assets/logo.jpeg"
-                alt="Logo"
-              />
+              <img className="w-6 h-6 object-contain" src={logo} alt="Logo" />
             </div>
 
             {/* Company Name */}
             <div className="flex flex-col leading-tight">
               <span className="font-bold text-lg text-gray-900">
-                Infinix Infotech
+                PNP Infotech
               </span>
-              <span className="text-sm text-gray-600">Private Limited</span>
+              {/* <span className="text-sm text-gray-600">Private Limited</span> */}
             </div>
           </div>
         )}
@@ -404,23 +393,17 @@ const DashboardSidebar = () => {
 
                         location.pathname.includes("whatsapp") &&
                           location.state?.client?.mobile ===
-                            chat.phone.replace(/^91/, "")
+                            normalizePhone(chat.phone)
                           ? "bg-green-50 border-l-4 border-green-600"
                           : "",
                       )}
                     >
                       <div className="w-8 h-8 text-sm rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                        {getInitials(chat.phone)}
+                        {getInitials(normalizePhone(chat.phone))}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          {/* <p className="text-sm font-semibold text-gray-900 truncate">
-                            {chat.client_name && chat.client_name.trim() !== ""
-                              ? chat.client_name
-                              : `+${chat.phone}`}
-                          </p> */}
-
                           <p className="text-sm font-semibold text-gray-900 truncate">
                             {chat.client_name && chat.client_name.trim() !== ""
                               ? chat.client_name
@@ -483,17 +466,6 @@ const DashboardSidebar = () => {
           </div>
         </div>
       )}
-
-      {/* <div className="p-2 border-t bg-green-50">
-        <Button
-          variant="ghost"
-          onClick={handleLogout}
-          className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
-        >
-          <LogOut className="w-5 h-5" />
-          {!collapsed && <span className="ml-3">Go to CRM</span>}
-        </Button>
-      </div> */}
     </aside>
   );
 };

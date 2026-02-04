@@ -10,6 +10,9 @@ import {
   AddClient,
   EditClient,
   UpdateClientStatus,
+  ChangeClientOwner,
+  GetActiveUser,
+  AddBulkClient,
 } from "../../../services/AdminServices";
 import { useUser } from "@/context/UserContext";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +50,17 @@ const AllClients = () => {
   const [templateParams, setTemplateParams] = useState("");
   const [openEditClient, setOpenEditClient] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [bulkFile, setBulkFile] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [ownerModal, setOwnerModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedOwner, setSelectedOwner] = useState("");
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const userMap = users.reduce((acc, user) => {
+    acc[user._id] = user.FullName;
+    return acc;
+  }, {});
 
   const fetchTemplates = async (tokens) => {
     setLoadingTemplates(true);
@@ -102,8 +116,6 @@ const AllClients = () => {
     };
     try {
       const res = await SendBulkTemplate(tokens, payload);
-      console.log("SEND BULK RESPONSE =>", res);
-
       if (res?.status) {
         toast({
           title: "Success",
@@ -156,6 +168,16 @@ const AllClients = () => {
   };
 
   useEffect(() => {
+    const fetchUsers = async () => {
+      const res = await GetActiveUser(tokens);
+      if (res?.status) {
+        setUsers(res.data || []);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
     fetchCRMContacts();
   }, [search]);
 
@@ -168,13 +190,11 @@ const AllClients = () => {
   };
 
   const handleStatusChange = async (row) => {
-    const currentStatus = String(row.ActiveStatus); // 🔑 IMPORTANT
+    const currentStatus = String(row.ActiveStatus); 
     const newStatus = currentStatus === "1" ? "0" : "1";
 
     try {
       const res = await UpdateClientStatus(row._id, newStatus, owner_id);
-
-      console.log("STATUS API RESPONSE =>", res);
 
       if (res?.status) {
         toast({
@@ -228,7 +248,7 @@ const AllClients = () => {
     {
       name: "S.No",
       width: "80px",
-      cell: (row, index) => index + 1,
+      cell: (row, index) => (page - 1) * limit + index + 1,
     },
     {
       name: "Full Name",
@@ -239,9 +259,18 @@ const AllClients = () => {
     {
       name: "Owner Name",
       width: "190px",
-      selector: (row) => row.owner_name || "—",
+      selector: (row) => {
+        if (!row.assigned_to) return "Unassigned";
+        return userMap[row.assigned_to] || "—";
+      },
       sortable: true,
     },
+    // {
+    //   name: "Owner Name",
+    //   width: "190px",
+    //   selector: (row) => row.owner_name || "—",
+    //   sortable: true,
+    // },
     // {
     //   name: "Email",
     //   selector: (row) => row.email || "—",
@@ -299,6 +328,15 @@ const AllClients = () => {
                 Change Status
               </ConfirmAction>
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setSelectedClient(row);
+                setSelectedOwner("");
+                setOwnerModal(true);
+              }}
+            >
+              Change Owner
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -306,17 +344,88 @@ const AllClients = () => {
     },
   ];
 
+  const handleBulkUpload = async () => {
+    if (!bulkFile) {
+      toast({
+        title: "Error",
+        description: "Please select a CSV file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", bulkFile);
+    formData.append("add_by", owner_id);
+
+    try {
+      const res = await AddBulkClient(tokens, formData);
+
+      if (res?.status) {
+        const s = res.summary || {};
+
+        toast({
+          title: "Bulk Upload Completed ✅",
+          description: `
+Total: ${s.total || 0}
+Success: ${s.success || 0}
+Failed: ${s.failed || 0}
+Duplicate: ${s.duplicate || 0}
+        `,
+        });
+
+        setBulkFile(null);
+        fetchCRMContacts();
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: res?.message,
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Server Error",
+        description: "Bulk upload failed",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <DashboardLayout title="My Clients" subtitle="Manage your clients">
       <div className="flex h-screen bg-background">
         <div className="flex-1 flex flex-col overflow-hidden">
           <main className="flex-1 overflow-auto p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 mb-6">
+              {/* CSV Upload */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="bulk-csv"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={(e) => setBulkFile(e.target.files[0])}
+                />
+
+                <Button variant="outline" asChild>
+                  <label htmlFor="bulk-csv" className="cursor-pointer">
+                    Choose CSV
+                  </label>
+                </Button>
+
+                <Button onClick={handleBulkUpload} disabled={!bulkFile}>
+                  Upload
+                </Button>
+              </div>
+
+              {/* Add Client */}
               <Button onClick={() => setOpenAddClient(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Client
               </Button>
 
+              {/* Send Template */}
               <Button
                 disabled={selectedRows.length === 0}
                 onClick={() => setTemplateModalOpen(true)}
@@ -332,6 +441,8 @@ const AllClients = () => {
                 loading={loading}
                 searchable
                 serverSearch
+                pagination
+                onChangePage={(p) => setPage(p)}
                 searchPlaceholder="Search name / email / phone"
                 onSearch={(value) => {
                   if (value !== prevSearch) {
@@ -519,6 +630,60 @@ const AllClients = () => {
               >
                 <Button disabled={!selectedTemplate}>Send</Button>
               </ConfirmAction>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {ownerModal && selectedClient && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white p-5 rounded w-[350px]">
+            <h3 className="font-semibold mb-3">Change Owner</h3>
+
+            <select
+              className="w-full border p-2 rounded"
+              value={selectedOwner}
+              onChange={(e) => setSelectedOwner(e.target.value)}
+            >
+              <option value="">-- Select Owner --</option>
+              {users.map((u) => (
+                <option key={u._id} value={u._id}>
+                  {u.FullName}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setOwnerModal(false)}>
+                Cancel
+              </Button>
+
+              <Button
+                disabled={!selectedOwner}
+                onClick={async () => {
+                  const res = await ChangeClientOwner(tokens, {
+                    id: selectedClient._id,
+                    assigned_to: selectedOwner,
+                  });
+
+                  if (res?.status) {
+                    toast({
+                      title: "Success",
+                      description: res.message,
+                    });
+                    setOwnerModal(false);
+                    fetchCRMContacts(); // 🔥 refresh list
+                  } else {
+                    toast({
+                      title: "Error",
+                      description: res?.message,
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                Change
+              </Button>
             </div>
           </div>
         </div>

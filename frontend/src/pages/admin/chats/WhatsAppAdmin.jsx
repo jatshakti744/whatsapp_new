@@ -88,10 +88,9 @@ const TemplateModal = ({
                 onChange={(e) => setTemplateParams(e.target.value)}
                 placeholder="Ex: 1##2##3##4"
               />
-               <p className="text-xs text-gray-500 mt-1">
-                        Separate parameters with ## (e.g.,
-                        param1##param2##param3)
-                      </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Separate parameters with ## (e.g., param1##param2##param3)
+              </p>
             </>
           )}
         </div>
@@ -140,8 +139,7 @@ const WhatsappChatAdmin = () => {
   const token = localStorage.getItem("tokenjwt");
   const sender_id = localStorage.getItem("uid");
 
-const [employee, setEmployee] = useState(null);
-
+  const [employee, setEmployee] = useState(null);
 
   useEffect(() => {
     const images = messages
@@ -177,7 +175,7 @@ const [employee, setEmployee] = useState(null);
     try {
       const res = await GetChatHistoryByPhone(token, client.PhoneNo, sender_id);
       setMessages(res.data || []);
-      setEmployee(res.emp || null); 
+      setEmployee(res.emp || null);
     } catch (err) {
       console.error("❌ Fetch history error:", err);
     } finally {
@@ -204,23 +202,14 @@ const [employee, setEmployee] = useState(null);
     const socket = socketRef.current;
 
     socket.on("clientnotification", (data) => {
-      console.log("🔔 Socket received:", data);
-
       if (!data) return;
 
       if (data.phone?.endsWith(client.PhoneNo)) {
         if (data.type === "whatsapp_chat") {
-          console.log("📨 New chat message received");
           fetchHistory(true);
         }
 
         if (data.type === "whatsapp_status") {
-          console.log("✅ Status update:", {
-            status: data.status,
-            messageId: data.message_id,
-            error: data.error,
-          });
-
           setMessages((prev) => {
             const updated = prev.map((m) =>
               m._id === data.message_id
@@ -229,30 +218,23 @@ const [employee, setEmployee] = useState(null);
                     status: data.status,
                     whatsapp_msg_error: data.error || null,
                   }
-                : m
+                : m,
             );
-
-            console.log("🔄 Messages array updated");
             return updated;
           });
         }
       }
     });
 
-    socket.on("connect", () => {
-      console.log("✅ Socket connected");
-    });
+    socket.on("connect", () => {});
 
-    socket.on("disconnect", () => {
-      console.log("❌ Socket disconnected");
-    });
+    socket.on("disconnect", () => {});
 
     socket.on("error", (err) => {
       console.error("🔥 Socket error:", err);
     });
 
     return () => {
-      console.log("🔌 Disconnecting socket");
       socket.disconnect();
       socketRef.current = null;
     };
@@ -290,8 +272,8 @@ const [employee, setEmployee] = useState(null);
             ? file.type.startsWith("image/")
               ? "image"
               : file.type.startsWith("video/")
-              ? "video"
-              : "document"
+                ? "video"
+                : "document"
             : "text",
           media_url:
             response.data.media_url ||
@@ -338,12 +320,9 @@ const [employee, setEmployee] = useState(null);
       }
 
       const res = await MSGSend(token, formData);
-      console.log("SEND TEMPLATE RESPONSE =>", res);
 
       if (res?.status === false) {
         toast.error("Failed to send tempelate");
-
-        // toast.error(res?.message || "WhatsApp message failed");
         setSending(false);
         return;
       }
@@ -351,7 +330,6 @@ const [employee, setEmployee] = useState(null);
       if (res?.status === 500) {
         toast.error("Failed to send tempelate");
 
-        // toast.error(res?.message || "WhatsApp message failed");
         setSending(false);
         return;
       }
@@ -388,7 +366,7 @@ const [employee, setEmployee] = useState(null);
 
   const prevImage = () => {
     setCurrentImageIndex(
-      (prev) => (prev - 1 + allImages.length) % allImages.length
+      (prev) => (prev - 1 + allImages.length) % allImages.length,
     );
   };
 
@@ -734,18 +712,14 @@ const [employee, setEmployee] = useState(null);
 
       <div className="flex-1 flex flex-col">
         <DashboardHeader
-          title={`${client?.fname || client?.name ||""} ${client?.lname || ""}`}
-          subtitle={`+91${client?.PhoneNo} | Owner: ${
-           employee?.name || "N/A"
-          }`}
+          title={`${client?.FullName || ""} `}
+          subtitle={`${client?.PhoneNo} | Owner: ${employee?.name || "N/A"}`}
         />
-{/* 
+        {/* 
  <DashboardHeader
   title={employee?.name || "N/A"}
   subtitle={`+91${employee?.PhoneNo || ""} | ${employee?.email || ""}`}
 /> */}
-
-
 
         {/* CHAT AREA */}
         <div className="flex-1 p-4 overflow-auto bg-[#efeae2]">
@@ -764,7 +738,7 @@ const [employee, setEmployee] = useState(null);
               const showCaption = m.caption && m.caption !== "null";
               const showDateSeparator = shouldShowDateSeparator(
                 m,
-                messages[index - 1]
+                messages[index - 1],
               );
 
               return (

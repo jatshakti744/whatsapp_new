@@ -12,6 +12,14 @@ import {
 import { useUser } from "@/context/UserContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const MemberClients = () => {
   const { token } = useUser();
@@ -36,16 +44,16 @@ const MemberClients = () => {
   const fetchCRMContacts = async () => {
     setLoading(true);
 
-    const res = await GetCRMCContactWithFilter(token, {
+    const res = await GetCRMCContactWithFilter(tokens, {
       owner_id,
       search,
-      page,
-      limit,
+      // page,
+      // limit,
     });
 
     if (res?.status) {
       setData(res.data || []);
-      setTotalRows(res.pagination.totalRecords || 0);
+      // setTotalRows(res.pagination.totalRecords || 0);
     }
 
     setLoading(false);
@@ -106,31 +114,43 @@ const MemberClients = () => {
     },
     {
       name: "Full Name",
-      selector: (row) => row.fname || "—",
+      width: "280px",
+      selector: (row) => row.FullName || "—",
       sortable: true,
     },
+    // {
+    //   name: "Email",
+    //   selector: (row) => row.email || "—",
+    // },
     {
-      name: "Email",
-      selector: (row) => row.email || "—",
+      name: "Phone No",
+      width: "280px",
+      selector: (row) => row.PhoneNo || "—",
     },
     {
-      name: "Phone",
-      selector: (row) => row.mobile || "—",
-    },
-    {
-      name: "Action",
+      name: "Actions",
       width: "120px",
       cell: (row) => (
-        <button
-          className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:opacity-90"
-          onClick={() => handleChat(row)}
-        >
-          Chat
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleChat(row)}>
+              Chat
+            </DropdownMenuItem>
+
+            {/* future ke liye ready */}
+            {/* <DropdownMenuItem onClick={() => editClient(row)}>
+          Edit
+        </DropdownMenuItem> */}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
     },
   ];
 
@@ -165,17 +185,14 @@ const MemberClients = () => {
     const payload = {
       phones,
       sender_type: "employee",
-      sender_id: Number(owner_id),
+      sender_id: owner_id,
       template_name: selectedTemplate.template_name,
       template_params: templateParams || "",
-      crm_user_id: Number(owner_id),
+      crm_user_id: owner_id,
     };
-
-    console.log("FINAL PAYLOAD =>", payload);
 
     try {
       const res = await SendBulkTemplate(tokens, payload);
-      console.log("SEND BULK RESPONSE =>", res);
 
       if (res?.status) {
         toast.success(res?.message);
@@ -188,7 +205,6 @@ const MemberClients = () => {
       }
 
       if (res?.status === 500) {
-        // toast.error(res?.message);
 
         toast.error("Failed to send tempelate");
       }
@@ -299,7 +315,7 @@ const MemberClients = () => {
                         placeholder="Ex: 1##2##3##4"
                         className="w-full border p-2 rounded"
                       />
-                       <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         Separate parameters with ## (e.g.,
                         param1##param2##param3)
                       </p>
