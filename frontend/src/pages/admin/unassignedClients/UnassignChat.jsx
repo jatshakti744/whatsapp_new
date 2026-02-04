@@ -127,9 +127,8 @@ const UnassignedChats = () => {
     navigate("/dashboard/whatsappadmin", {
       state: {
         client: {
-          mobile: row.phone,
-          fname: "",
-          lname: "",
+          PhoneNo: row.PhoneNo,
+          FullName: row.FullName,
         },
       },
     });
