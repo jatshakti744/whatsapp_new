@@ -14,6 +14,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
 import { LoginApi } from "../services/AuthServices";
+import Logo from "../components/favicon/unblocklogo.png"
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -97,9 +98,9 @@ const Auth = () => {
       <div className="relative z-10 w-full max-w-md">
         <Link to="/" className="flex items-center justify-center gap-2 mb-8 ">
           <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-            <MessageSquare className="w-5 h-5 text-primary-foreground" />
+              <img className="w-6 h-6 object-contain" src={Logo} alt="Logo" />
           </div>
-          <span className="text-2xl font-bold text-foreground">Chat Flow</span>
+          <span className="text-2xl font-bold text-foreground">Unblock Aminities</span>
         </Link>
 
         <Card className="shadow-medium border-border/50 backdrop-blur-sm bg-card/95">

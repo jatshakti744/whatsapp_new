@@ -15,7 +15,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { GetLatestChat } from "@/services/AdminServices";
 import { Badge } from "@/components/ui/badge";
 import { io } from "socket.io-client";
-import logo from "../favicon/_file5c2e1123e834d-site-logo.png";
+import logo from "../favicon/unblocklogo.png";
 
 const adminNavItems = [
   { icon: Users, label: "Clients", href: "/dashboard/allclients" },
@@ -300,7 +300,7 @@ const DashboardSidebar = () => {
             {/* Company Name */}
             <div className="flex flex-col leading-tight">
               <span className="font-bold text-lg text-gray-900">
-                PNP Infotech
+                Unblock Amenities
               </span>
               {/* <span className="text-sm text-gray-600">Private Limited</span> */}
             </div>
