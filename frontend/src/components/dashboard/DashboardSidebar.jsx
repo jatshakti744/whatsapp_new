@@ -16,6 +16,7 @@ import { GetLatestChat } from "@/services/AdminServices";
 import { Badge } from "@/components/ui/badge";
 import { io } from "socket.io-client";
 import logo from "../favicon/unblocklogo.png";
+import * as config from "../../utils/config";
 
 const adminNavItems = [
   { icon: Users, label: "Clients", href: "/dashboard/allclients" },

@@ -21,6 +21,8 @@ import {
 import { Check, CheckCheck } from "lucide-react";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
+import * as config from "../../utils/config";
+
 
 // ✅ Template Modal Component (Extracted at top like Admin)
 const TemplateModal = ({
