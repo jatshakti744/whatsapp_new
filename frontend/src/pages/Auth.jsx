@@ -97,8 +97,8 @@ const Auth = () => {
 
       <div className="relative z-10 w-full max-w-md">
         <Link to="/" className="flex items-center justify-center gap-2 mb-8 ">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <img className="w-6 h-6 object-contain" src={Logo} alt="Logo" />
+          <div className="w-14 h-14  flex items-center justify-center">
+              <img className="w-14 h-14 object-contain" src={Logo} alt="Logo" />
           </div>
           <span className="text-2xl font-bold text-foreground">Unblock Aminities</span>
         </Link>

@@ -192,25 +192,21 @@ const WhatsappChat = () => {
 
     fetchHistory();
 
-    socketRef.current = io("https://apiwhatsapp.tradestreet.in:1001", {
+    socketRef.current = io(`${config.socket_url}`, {
       transports: ["websocket"],
     });
 
     const socket = socketRef.current;
 
     socket.on("clientnotification", (data) => {
-
-
       if (!data) return;
 
       if (data.phone?.endsWith(client.PhoneNo)) {
         if (data.type === "whatsapp_chat") {
-
           fetchHistory(true);
         }
 
         if (data.type === "whatsapp_status") {
-
           setMessages((prev) => {
             const updated = prev.map((m) =>
               m._id === data.message_id
@@ -228,11 +224,9 @@ const WhatsappChat = () => {
       }
     });
 
-    socket.on("connect", () => {
-    });
+    socket.on("connect", () => {});
 
-    socket.on("disconnect", () => {
-    });
+    socket.on("disconnect", () => {});
 
     socket.on("error", (err) => {
       console.error("🔥 Socket error:", err);
@@ -407,11 +401,13 @@ const WhatsappChat = () => {
 
   const formatTime = (dateString) => {
     if (!dateString) return "";
-    return new Date(dateString).toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return new Date(dateString)
+      .toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+      .toUpperCase();
   };
 
   const getDateLabel = (dateString) => {

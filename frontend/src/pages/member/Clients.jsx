@@ -34,6 +34,7 @@ const MemberClients = () => {
   const [limit, setLimit] = useState(10);
   const [totalRows, setTotalRows] = useState(0);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [prevSearch, setPrevSearch] = useState("");
 
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -47,8 +48,6 @@ const MemberClients = () => {
     const res = await GetCRMCContactWithFilter(tokens, {
       owner_id,
       search,
-      // page,
-      // limit,
     });
 
     if (res?.status) {
@@ -61,7 +60,7 @@ const MemberClients = () => {
 
   useEffect(() => {
     fetchCRMContacts();
-  }, [search, page, limit]);
+  }, [search]);
 
   const fetchTemplates = async (tokens) => {
     setLoadingTemplates(true);
@@ -100,7 +99,7 @@ const MemberClients = () => {
       cell: (row) => (
         <input
           type="checkbox"
-          checked={selectedRows.some((r) => r.mobile === row.mobile)}
+          checked={selectedRows.some((r) => r.PhoneNo === row.PhoneNo)}
           onChange={() => handleRowSelect(row)}
         />
       ),
@@ -110,7 +109,7 @@ const MemberClients = () => {
     {
       name: "S.No",
       width: "80px",
-      cell: (row, index) => <span>{(page - 1) * limit + index + 1}</span>,
+      cell: (row, index) => (page - 1) * limit + index + 1,
     },
     {
       name: "Full Name",
@@ -156,10 +155,10 @@ const MemberClients = () => {
 
   const handleRowSelect = (row) => {
     setSelectedRows((prev) => {
-      const alreadySelected = prev.find((r) => r.mobile === row.mobile);
+      const alreadySelected = prev.find((r) => r.PhoneNo === row.PhoneNo);
 
       if (alreadySelected) {
-        return prev.filter((r) => r.mobile !== row.mobile);
+        return prev.filter((r) => r.PhoneNo !== row.PhoneNo);
       } else {
         return [...prev, row];
       }
@@ -178,8 +177,8 @@ const MemberClients = () => {
     if (!selectedTemplate) return;
 
     const phones = selectedRows.map((u) => {
-      const mobile = String(u.mobile).trim().slice(-10);
-      return `91${mobile}`;
+      const PhoneNo = String(u.PhoneNo).trim().slice(-10);
+      return `91${PhoneNo}`;
     });
 
     const payload = {
@@ -205,7 +204,6 @@ const MemberClients = () => {
       }
 
       if (res?.status === 500) {
-
         toast.error("Failed to send tempelate");
       }
     } catch (err) {
@@ -230,7 +228,7 @@ const MemberClients = () => {
         </div>
 
         <main className="flex-1 overflow-auto p-6">
-          <ReusableDataTable
+          {/* <ReusableDataTable
             columns={columns}
             data={data}
             loading={loading}
@@ -250,6 +248,28 @@ const MemberClients = () => {
               setLimit(newLimit);
               setPage(1);
             }}
+          /> */}
+
+          <ReusableDataTable
+            columns={columns}
+            data={data}
+            loading={loading}
+            searchable
+            serverSearch
+            pagination
+            onChangePage={(p) => setPage(p)}
+            onChangeRowsPerPage={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+            searchPlaceholder="Search name / email / phone"
+            onSearch={(value) => {
+              if (value !== prevSearch) {
+                setSearch(value);
+                setPrevSearch(value);
+              }
+            }}
+            noDataText="No clients found"
           />
         </main>
       </div>

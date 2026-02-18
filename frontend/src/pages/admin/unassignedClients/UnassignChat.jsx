@@ -153,7 +153,9 @@ const UnassignedChats = () => {
     {
       name: "Received At",
       selector: (row) =>
-        row.createdAt ? new Date(row.createdAt).toLocaleString() : "—",
+        row.createdAt
+          ? new Date(row.createdAt).toLocaleDateString("en-GB")
+          : "—",
     },
     {
       name: "Actions",
@@ -195,19 +197,40 @@ const UnassignedChats = () => {
             )}
           </div>
 
-          <ReusableDataTable
+          {/* <ReusableDataTable
             columns={columns}
             data={data}
             loading={loading}
             searchable
             serverSearch
-            searchPlaceholder="Search by phone"
+            searchPlaceholder="Search name / email / phone"
             onSearch={(value) => {
               if (value !== prevSearch) {
                 setSearch(value);
                 setPage(1);
                 setPrevSearch(value);
               }
+            }}
+            pagination
+            paginationServer
+            paginationTotalRows={totalRows}
+            paginationPerPage={limit}
+            onChangePage={(p) => setPage(p)}
+            onChangeRowsPerPage={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          /> */}
+
+          <ReusableDataTable
+            columns={columns}
+            data={data}
+            loading={loading}
+            searchable
+            searchPlaceholder="Search name / phone"
+            onSearch={(value) => {
+              setSearch(value);
+              setPage(1);
             }}
             pagination
             paginationServer

@@ -259,7 +259,7 @@ export async function GetCRMCContactWithFilter(token, data) {
 export async function MSGSend(token, formData) {
   try {
     const response = await axios.post(
-      `${config.base_url}whatsapp/send`,
+      `${config.live_url}whatsapp/send`,
       formData,
       {
         headers: {
@@ -484,7 +484,7 @@ export async function GetActiveTemplateList(token) {
 export async function SendBulkTemplate(token, payload) {
   try {
     const response = await axios.post(
-      `${config.base_url}whatsapp/sendbluk`,
+      `${config.live_url}whatsapp/sendbluk`,
       payload,
       {
         headers: {

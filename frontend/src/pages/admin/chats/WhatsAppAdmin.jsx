@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -17,6 +17,8 @@ import {
   MSGSend,
   GetChatHistoryByPhone,
   GetActiveTemplateList,
+  GetActiveUser,
+  GetCRMCContactWithFilter, // ✅ NEW IMPORT
 } from "../../../services/AdminServices";
 import { Check, CheckCheck } from "lucide-react";
 import { io } from "socket.io-client";
@@ -45,7 +47,6 @@ const TemplateModal = ({
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <div className="flex justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">Select Template</h2>
           <button onClick={onClose}>
@@ -53,49 +54,51 @@ const TemplateModal = ({
           </button>
         </div>
 
-        {/* BODY */}
         <div className="p-4 space-y-4">
-          <select
-            className="w-full border p-2 rounded"
-            value={selectedTemplate?._id || ""}
-            onChange={(e) => {
-              const t = templates.find((x) => x._id === e.target.value);
-              setSelectedTemplate(t);
-              setTemplateParams("");
-            }}
-          >
-            <option value="">-- Select Template --</option>
-            {templates.map((t) => (
-              <option key={t._id} value={t._id}>
-                {t.template_name}
-              </option>
-            ))}
-          </select>
-
-          {selectedTemplate && (
+          {loadingTemplates ? (
+            <p className="text-sm text-gray-500">Loading templates...</p>
+          ) : (
             <>
-              <textarea
-                readOnly
-                value={selectedTemplate.message}
-                rows={5}
-                className="w-full border p-2 bg-gray-50"
-              />
+              <select
+                className="w-full border p-2 rounded"
+                value={selectedTemplate?._id || ""}
+                onChange={(e) => {
+                  const t = templates.find((x) => x._id === e.target.value);
+                  setSelectedTemplate(t);
+                  setTemplateParams("");
+                }}
+              >
+                <option value="">-- Select Template --</option>
+                {templates.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {t.template_name}
+                  </option>
+                ))}
+              </select>
 
-              {/* 🔥 FIXED INPUT */}
-              <Input
-                autoFocus
-                value={templateParams}
-                onChange={(e) => setTemplateParams(e.target.value)}
-                placeholder="Ex: 1##2##3##4"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Separate parameters with ## (e.g., param1##param2##param3)
-              </p>
+              {selectedTemplate && (
+                <>
+                  <textarea
+                    readOnly
+                    value={selectedTemplate.message}
+                    rows={5}
+                    className="w-full border p-2 bg-gray-50 rounded"
+                  />
+                  <Input
+                    autoFocus
+                    value={templateParams}
+                    onChange={(e) => setTemplateParams(e.target.value)}
+                    placeholder="Ex: 1##2##3##4"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Separate parameters with ## (e.g., param1##param2##param3)
+                  </p>
+                </>
+              )}
             </>
           )}
         </div>
 
-        {/* FOOTER */}
         <div className="flex justify-end gap-2 p-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Cancel
@@ -132,6 +135,14 @@ const WhatsappChatAdmin = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [templateParams, setTemplateParams] = useState("");
 
+  const [users, setUsers] = useState([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+
+  // ✅ assigned_to alag state — sidebar se client mein nahi hoga
+  const [resolvedAssignedTo, setResolvedAssignedTo] = useState(
+    client?.assigned_to || null,
+  );
+
   const bottomRef = useRef(null);
   const socketRef = useRef(null);
   const isFetchingRef = useRef(false);
@@ -139,7 +150,75 @@ const WhatsappChatAdmin = () => {
   const token = localStorage.getItem("tokenjwt");
   const sender_id = localStorage.getItem("uid");
 
-  const [employee, setEmployee] = useState(null);
+  // ✅ userMap
+  const userMap = useMemo(() => {
+    return users.reduce((acc, u) => {
+      acc[u._id] = u.FullName;
+      return acc;
+    }, {});
+  }, [users]);
+
+  // ✅ ownerName — resolvedAssignedTo + userMap se banega
+  const ownerName = useMemo(() => {
+    if (!resolvedAssignedTo) return "Unassigned";
+    if (!usersLoaded) return "Loading...";
+    return userMap[resolvedAssignedTo] || "—";
+  }, [resolvedAssignedTo, userMap, usersLoaded]);
+
+  // ✅ Users fetch
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await GetActiveUser(token);
+        if (res?.status) {
+          setUsers(res.data || []);
+        }
+      } catch (err) {
+        console.error("❌ Fetch users error", err);
+      } finally {
+        setUsersLoaded(true);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // ✅ KEY FIX: Sidebar se aane par client.assigned_to nahi hota
+  // PhoneNo se search karke assigned_to fetch karo
+  useEffect(() => {
+    const fetchAssignedTo = async () => {
+      // Already assigned_to hai (AllClients se aaya) — skip
+      if (client?.assigned_to) {
+        setResolvedAssignedTo(client.assigned_to);
+        return;
+      }
+
+      if (!client?.PhoneNo) return;
+
+      try {
+        const res = await GetCRMCContactWithFilter(token, {
+          owner_id: null,
+          search: String(client.PhoneNo).slice(-10),
+        });
+
+        if (res?.status && res.data?.length > 0) {
+          // Last 10 digits se exact match karo
+          const matched = res.data.find((c) => {
+            const dbPhone = String(c.PhoneNo).slice(-10);
+            const searchPhone = String(client.PhoneNo).slice(-10);
+            return dbPhone === searchPhone;
+          });
+
+          if (matched?.assigned_to) {
+            setResolvedAssignedTo(matched.assigned_to);
+          }
+        }
+      } catch (err) {
+        console.error("❌ Fetch assigned_to error:", err);
+      }
+    };
+
+    fetchAssignedTo();
+  }, [client?.PhoneNo, client?.assigned_to]);
 
   useEffect(() => {
     const images = messages
@@ -166,7 +245,6 @@ const WhatsappChatAdmin = () => {
 
   const fetchHistory = async (skipIfFetching = false) => {
     if (!client?.PhoneNo) return;
-
     if (skipIfFetching && isFetchingRef.current) return;
 
     isFetchingRef.current = true;
@@ -175,7 +253,6 @@ const WhatsappChatAdmin = () => {
     try {
       const res = await GetChatHistoryByPhone(token, client.PhoneNo, sender_id);
       setMessages(res.data || []);
-      setEmployee(res.emp || null);
     } catch (err) {
       console.error("❌ Fetch history error:", err);
     } finally {
@@ -195,7 +272,7 @@ const WhatsappChatAdmin = () => {
 
     fetchHistory();
 
-    socketRef.current = io("https://apiwhatsapp.tradestreet.in:1001", {
+    socketRef.current = io(`${config.socket_url}`, {
       transports: ["websocket"],
     });
 
@@ -210,8 +287,8 @@ const WhatsappChatAdmin = () => {
         }
 
         if (data.type === "whatsapp_status") {
-          setMessages((prev) => {
-            const updated = prev.map((m) =>
+          setMessages((prev) =>
+            prev.map((m) =>
               m._id === data.message_id
                 ? {
                     ...m,
@@ -219,16 +296,11 @@ const WhatsappChatAdmin = () => {
                     whatsapp_msg_error: data.error || null,
                   }
                 : m,
-            );
-            return updated;
-          });
+            ),
+          );
         }
       }
     });
-
-    socket.on("connect", () => {});
-
-    socket.on("disconnect", () => {});
 
     socket.on("error", (err) => {
       console.error("🔥 Socket error:", err);
@@ -238,7 +310,7 @@ const WhatsappChatAdmin = () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [client?.PhoneNo, token, sender_id]);
+  }, [client?.PhoneNo]);
 
   const sendMessage = async () => {
     if (!text && !file) return;
@@ -264,6 +336,7 @@ const WhatsappChatAdmin = () => {
 
       setText("");
       setFile(null);
+
       if (response.data?._id) {
         const newMsg = {
           _id: response.data._id,
@@ -277,12 +350,13 @@ const WhatsappChatAdmin = () => {
             : "text",
           media_url:
             response.data.media_url ||
-            (file.type.startsWith("image/") ? URL.createObjectURL(file) : null),
+            (file && file.type.startsWith("image/")
+              ? URL.createObjectURL(file)
+              : null),
           sendto: 1,
           status: "sent",
           createdAt: new Date().toISOString(),
         };
-
         setMessages((prev) => [...prev, newMsg]);
       } else {
         setTimeout(() => fetchHistory(), 500);
@@ -321,15 +395,8 @@ const WhatsappChatAdmin = () => {
 
       const res = await MSGSend(token, formData);
 
-      if (res?.status === false) {
-        toast.error("Failed to send tempelate");
-        setSending(false);
-        return;
-      }
-
-      if (res?.status === 500) {
-        toast.error("Failed to send tempelate");
-
+      if (res?.status === false || res?.status === 500) {
+        toast.error("Failed to send template");
         setSending(false);
         return;
       }
@@ -360,25 +427,21 @@ const WhatsappChatAdmin = () => {
     }
   };
 
-  const nextImage = () => {
+  const nextImage = () =>
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-  };
 
-  const prevImage = () => {
+  const prevImage = () =>
     setCurrentImageIndex(
       (prev) => (prev - 1 + allImages.length) % allImages.length,
     );
-  };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!lightboxOpen) return;
-
       if (e.key === "ArrowRight") nextImage();
       if (e.key === "ArrowLeft") prevImage();
       if (e.key === "Escape") setLightboxOpen(false);
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxOpen, allImages.length]);
@@ -398,11 +461,13 @@ const WhatsappChatAdmin = () => {
 
   const formatTime = (dateString) => {
     if (!dateString) return "";
-    return new Date(dateString).toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return new Date(dateString)
+      .toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+      .toUpperCase();
   };
 
   const getDateLabel = (dateString) => {
@@ -417,25 +482,20 @@ const WhatsappChatAdmin = () => {
     today.setHours(0, 0, 0, 0);
     yesterday.setHours(0, 0, 0, 0);
 
-    if (msgDate.getTime() === today.getTime()) {
-      return "Today";
-    } else if (msgDate.getTime() === yesterday.getTime()) {
-      return "Yesterday";
-    } else {
-      return new Date(dateString).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    }
+    if (msgDate.getTime() === today.getTime()) return "Today";
+    if (msgDate.getTime() === yesterday.getTime()) return "Yesterday";
+
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   const shouldShowDateSeparator = (currentMsg, previousMsg) => {
     if (!previousMsg) return true;
-
     const currentDate = new Date(currentMsg.createdAt).toDateString();
     const previousDate = new Date(previousMsg.createdAt).toDateString();
-
     return currentDate !== previousDate;
   };
 
@@ -472,7 +532,6 @@ const WhatsappChatAdmin = () => {
     if (msg.message_type === "document") {
       const fileName =
         msg.media_url?.split("/").pop() || msg.caption || "Document";
-
       return (
         <a
           href={msg.media_url || "#"}
@@ -483,7 +542,6 @@ const WhatsappChatAdmin = () => {
           <div className="w-10 h-10 bg-red-500 rounded flex items-center justify-center text-white text-lg">
             📄
           </div>
-
           <div className="flex-1">
             <p className="text-sm font-medium break-all leading-tight">
               {fileName}
@@ -507,140 +565,6 @@ const WhatsappChatAdmin = () => {
     return null;
   };
 
-  // const TemplateModal = () => {
-  //   if (!templateModalOpen) return null;
-
-  //   return (
-  //     <div
-  //       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-  //       onClick={() => setTemplateModalOpen(false)}
-  //     >
-  //       <div
-  //         className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-  //         onClick={(e) => e.stopPropagation()}
-  //       >
-  //         {/* Header */}
-  //         <div className="flex items-center justify-between p-4 border-b">
-  //           <h2 className="text-lg font-semibold flex items-center gap-2">
-  //             <FileText size={20} />
-  //             Select Template
-  //           </h2>
-  //           <button
-  //             onClick={() => setTemplateModalOpen(false)}
-  //             className="text-gray-500 hover:text-gray-700"
-  //           >
-  //             <X size={20} />
-  //           </button>
-  //         </div>
-
-  //         {/* Content */}
-  //         <div className="p-4 overflow-y-auto max-h-[calc(80vh-140px)]">
-  //           {loadingTemplates ? (
-  //             <div className="text-center py-8 text-gray-500">
-  //               Loading templates...
-  //             </div>
-  //           ) : templates.length === 0 ? (
-  //             <div className="text-center py-8 text-gray-500">
-  //               No active templates found
-  //             </div>
-  //           ) : (
-  //             <div className="space-y-4">
-  //               <div>
-  //                 <label className="block text-sm font-medium mb-2">
-  //                   Choose Template
-  //                 </label>
-  //                 <select
-  //                   className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-  //                   value={selectedTemplate?._id || ""}
-  //                   onChange={(e) => {
-  //                     const template = templates.find(
-  //                       (t) => t._id === e.target.value
-  //                     );
-  //                     setSelectedTemplate(template);
-  //                     setTemplateParams("");
-  //                   }}
-  //                 >
-  //                   <option value="">-- Select Template --</option>
-  //                   {templates.map((template) => (
-  //                     <option key={template._id} value={template._id}>
-  //                       {template.template_name}
-  //                     </option>
-  //                   ))}
-  //                 </select>
-  //               </div>
-
-  //               {selectedTemplate && (
-  //                 <>
-  //                   {/* <div>
-  //                     <label className="block text-sm font-medium mb-2">
-  //                       Template Name (Read-only)
-  //                     </label>
-  //                     <Input
-  //                       value={selectedTemplate.template_name}
-  //                       readOnly
-  //                       className="bg-gray-50 cursor-not-allowed"
-  //                     />
-  //                   </div> */}
-
-  //                   <div>
-  //                     <label className="block text-sm font-medium mb-2">
-  //                       Template Message (Read-only)
-  //                     </label>
-  //                     <textarea
-  //                       value={
-  //                         selectedTemplate.message || "No message available"
-  //                       }
-  //                       readOnly
-  //                       rows={6}
-  //                       className="w-full border rounded-lg p-2 bg-gray-50 cursor-not-allowed resize-none"
-  //                     />
-  //                   </div>
-
-  //                   <div>
-  //                     <label className="block text-sm font-medium mb-2">
-  //                       Template Parameters
-  //                     </label>
-  //                     <Input
-  //                       value={templateParams}
-  //                       onChange={(e) => setTemplateParams(e.target.value)}
-  //                       placeholder="Ex: 1##2##3##4"
-  //                       className="font-mono"
-  //                     />
-  //                     <p className="text-xs text-gray-500 mt-1">
-  //                       Separate parameters with ## (e.g.,
-  //                       param1##param2##param3)
-  //                     </p>
-  //                   </div>
-  //                 </>
-  //               )}
-  //             </div>
-  //           )}
-  //         </div>
-
-  //         {/* Footer */}
-  //         <div className="flex justify-end gap-2 p-4 border-t bg-gray-50">
-  //           <Button
-  //             variant="outline"
-  //             onClick={() => {
-  //               setTemplateModalOpen(false);
-  //               setSelectedTemplate(null);
-  //               setTemplateParams("");
-  //             }}
-  //           >
-  //             Cancel
-  //           </Button>
-  //           <Button
-  //             onClick={sendTemplateMessage}
-  //             disabled={!selectedTemplate || sending}
-  //           >
-  //             {sending ? "Sending..." : "Send Template"}
-  //           </Button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // };
-
   const ImageLightbox = () => {
     if (!lightboxOpen || allImages.length === 0) return null;
 
@@ -651,7 +575,6 @@ const WhatsappChatAdmin = () => {
         className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center"
         onClick={() => setLightboxOpen(false)}
       >
-        {/* Close Button */}
         <button
           onClick={() => setLightboxOpen(false)}
           className="absolute top-4 right-4 text-white hover:text-gray-300 z-50"
@@ -659,12 +582,10 @@ const WhatsappChatAdmin = () => {
           <X size={32} />
         </button>
 
-        {/* Image Counter */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded-full text-sm">
           {currentImageIndex + 1} / {allImages.length}
         </div>
 
-        {/* Previous Button */}
         {allImages.length > 1 && (
           <button
             onClick={(e) => {
@@ -677,7 +598,6 @@ const WhatsappChatAdmin = () => {
           </button>
         )}
 
-        {/* Image */}
         <img
           src={currentImage.url}
           alt="Full size"
@@ -685,7 +605,6 @@ const WhatsappChatAdmin = () => {
           className="max-w-[90vw] max-h-[90vh] object-contain"
         />
 
-        {/* Next Button */}
         {allImages.length > 1 && (
           <button
             onClick={(e) => {
@@ -698,7 +617,6 @@ const WhatsappChatAdmin = () => {
           </button>
         )}
 
-        {/* Image Info */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-4 py-2 rounded-full">
           {formatTime(currentImage.time)}
         </div>
@@ -712,14 +630,9 @@ const WhatsappChatAdmin = () => {
 
       <div className="flex-1 flex flex-col">
         <DashboardHeader
-          title={`${client?.FullName || ""} `}
-          subtitle={`${client?.PhoneNo} | Owner: ${employee?.name || "N/A"}`}
+          title={client?.FullName || ""}
+          subtitle={`${client?.PhoneNo} | Member: ${ownerName}`}
         />
-        {/* 
- <DashboardHeader
-  title={employee?.name || "N/A"}
-  subtitle={`+91${employee?.PhoneNo || ""} | ${employee?.email || ""}`}
-/> */}
 
         {/* CHAT AREA */}
         <div className="flex-1 p-4 overflow-auto bg-[#efeae2]">
@@ -743,7 +656,6 @@ const WhatsappChatAdmin = () => {
 
               return (
                 <div key={m._id}>
-                  {/* DATE SEPARATOR */}
                   {showDateSeparator && (
                     <div className="flex justify-center my-4">
                       <div className="bg-white/90 px-4 py-1 rounded-full shadow-sm text-xs text-gray-600 font-medium">
@@ -752,7 +664,6 @@ const WhatsappChatAdmin = () => {
                     </div>
                   )}
 
-                  {/* MESSAGE BUBBLE */}
                   <div
                     className={`flex mb-2 ${
                       isMe ? "justify-end" : "justify-start"
@@ -790,12 +701,7 @@ const WhatsappChatAdmin = () => {
                                 size={14}
                                 className="text-red-500 cursor-pointer"
                               />
-                              <div
-                                className="absolute bottom-full right-0 mb-1 w-64
-                                bg-black text-white text-[11px] px-2 py-1 rounded
-                                opacity-0 group-hover:opacity-100 transition
-                                pointer-events-none z-50"
-                              >
+                              <div className="absolute bottom-full right-0 mb-1 w-64 bg-black text-white text-[11px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none z-50">
                                 {m.whatsapp_msg_error}
                               </div>
                             </div>
@@ -821,7 +727,6 @@ const WhatsappChatAdmin = () => {
 
         {/* INPUT AREA */}
         <div className="p-3 border-t flex gap-2 items-center bg-white">
-          {/* File Attachment */}
           <label className="cursor-pointer hover:text-blue-600 transition-colors">
             <Paperclip size={18} />
             <input
@@ -832,7 +737,6 @@ const WhatsappChatAdmin = () => {
             />
           </label>
 
-          {/* Template Button */}
           <button
             onClick={openTemplateModal}
             className="cursor-pointer hover:text-blue-600 transition-colors"
@@ -854,7 +758,6 @@ const WhatsappChatAdmin = () => {
                   {file.name}
                 </div>
               )}
-
               <button
                 onClick={() => setFile(null)}
                 className="absolute -top-2 -right-2 bg-white rounded-full shadow p-1 hover:bg-gray-100"
@@ -909,7 +812,6 @@ const WhatsappChatAdmin = () => {
         sendTemplateMessage={sendTemplateMessage}
       />
 
-      {/* IMAGE LIGHTBOX */}
       <ImageLightbox />
     </div>
   );

@@ -1,7 +1,7 @@
 import {
   MessageSquare,
   Users,
-  UserCog,
+  UsersRound,
   ChevronLeft,
   Search,
   X,
@@ -19,8 +19,12 @@ import logo from "../favicon/unblocklogo.png";
 
 const adminNavItems = [
   { icon: Users, label: "Clients", href: "/dashboard/allclients" },
-  { icon: UserCog, label: "Members", href: "/dashboard/allmembers" },
-  { icon: UserMinus, label: "Unassign Chat", href: "/dashboard/unassignchat" },
+  { icon: UsersRound, label: "Members", href: "/dashboard/allmembers" },
+  {
+    icon: UserMinus,
+    label: "Unassigned Chats ",
+    href: "/dashboard/unassignchat",
+  },
   { icon: MessageSquare, label: "Templates", href: "/dashboard/template" },
 ];
 
@@ -86,7 +90,7 @@ const DashboardSidebar = () => {
   };
 
   useEffect(() => {
-    socketRef.current = io("https://apiwhatsapp.tradestreet.in:1001", {
+    socketRef.current = io(`${config.socket_url}`, {
       transports: ["websocket"],
     });
 
@@ -158,6 +162,7 @@ const DashboardSidebar = () => {
   }, [searchQuery]);
 
   const openChat = (chat) => {
+    console.log("🔍 chat object:", chat);
     const phoneNumber = normalizePhone(chat.phone);
 
     navigate(isAdmin ? "/dashboard/whatsappadmin" : "/dashboard/whatsapp", {
@@ -166,6 +171,8 @@ const DashboardSidebar = () => {
           PhoneNo: phoneNumber,
           FullName: chat.client_name || "",
           mobile: phoneNumber,
+          assigned_to: chat.assigned_to || null, // ✅ yeh add karo
+          _id: chat.client_id || null,
         },
       },
     });
@@ -202,11 +209,13 @@ const DashboardSidebar = () => {
     startOfYesterday.setDate(startOfToday.getDate() - 1);
 
     if (messageDate >= startOfToday) {
-      return messageDate.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
+      return messageDate
+        .toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+        .toUpperCase();
     }
 
     if (messageDate >= startOfYesterday && messageDate < startOfToday) {
@@ -289,12 +298,12 @@ const DashboardSidebar = () => {
         collapsed ? "w-16" : "w-72",
       )}
     >
-      <div className="h-16 flex items-center justify-between px-4 border-b">
+      <div className="h-16 flex items-center justify-between px-6 border-b">
         {!collapsed && (
           <div className="flex items-center gap-3">
             {/* Logo */}
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white">
-              <img className="w-6 h-6 object-contain" src={logo} alt="Logo" />
+            <div className="w-14 h-14  flex items-center justify-center">
+              <img className="w-14 h-14 object-contain" src={logo} alt="Logo" />
             </div>
 
             {/* Company Name */}
@@ -344,7 +353,7 @@ const DashboardSidebar = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search by mobile no"
+                placeholder="Search by phone no"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-9 h-9 bg-white"
@@ -407,7 +416,7 @@ const DashboardSidebar = () => {
                           <p className="text-sm font-semibold text-gray-900 truncate">
                             {chat.client_name && chat.client_name.trim() !== ""
                               ? chat.client_name
-                              : `+${chat.phone}`}
+                              : `${chat.phone}`}
                             {countdowns[chat.phone] && (
                               <span className="ml-2 text-xs text-red-600 font-bold">
                                 {countdowns[chat.phone]}

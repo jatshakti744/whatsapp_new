@@ -56,7 +56,7 @@ const AllClients = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedOwner, setSelectedOwner] = useState("");
   const [page, setPage] = useState(1);
-  const limit = 10;
+  const [limit, setLimit] = useState(10);
   const userMap = users.reduce((acc, user) => {
     acc[user._id] = user.FullName;
     return acc;
@@ -190,7 +190,7 @@ const AllClients = () => {
   };
 
   const handleStatusChange = async (row) => {
-    const currentStatus = String(row.ActiveStatus); 
+    const currentStatus = String(row.ActiveStatus);
     const newStatus = currentStatus === "1" ? "0" : "1";
 
     try {
@@ -257,7 +257,7 @@ const AllClients = () => {
       sortable: true,
     },
     {
-      name: "Owner Name",
+      name: "Member Name",
       width: "190px",
       selector: (row) => {
         if (!row.assigned_to) return "Unassigned";
@@ -288,7 +288,7 @@ const AllClients = () => {
       },
     },
     {
-      name: "Phone",
+      name: "Phone No",
       selector: (row) => row.PhoneNo || "—",
       width: "140px",
     },
@@ -335,7 +335,7 @@ const AllClients = () => {
                 setOwnerModal(true);
               }}
             >
-              Change Owner
+              Change Member
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -435,7 +435,7 @@ Duplicate: ${s.duplicate || 0}
             </div>
 
             <div className="bg-card rounded-xl shadow-soft p-4">
-              <ReusableDataTable
+              {/* <ReusableDataTable
                 columns={columns}
                 data={data}
                 loading={loading}
@@ -452,15 +452,37 @@ Duplicate: ${s.duplicate || 0}
                   }
                 }}
                 noDataText="No clients found"
-                // pagination
-                // paginationServer
-                // paginationTotalRows={totalRows}
-                // paginationPerPage={limit}
-                // onChangePage={(p) => setPage(p)}
-                // onChangeRowsPerPage={(newLimit) => {
-                //   setLimit(newLimit);
-                //   setPage(1);
-                // }}
+                pagination
+                paginationServer
+                paginationTotalRows={totalRows}
+                paginationPerPage={limit}
+                onChangePage={(p) => setPage(p)}
+                onChangeRowsPerPage={(newLimit) => {
+                  setLimit(newLimit);
+                  setPage(1);
+                }}
+              /> */}
+
+              <ReusableDataTable
+                columns={columns}
+                data={data}
+                loading={loading}
+                searchable
+                serverSearch
+                pagination
+                onChangePage={(p) => setPage(p)}
+                onChangeRowsPerPage={(newLimit) => {
+                  setLimit(newLimit); // 👈 IMPORTANT
+                  setPage(1); // 👈 reset page
+                }}
+                searchPlaceholder="Search name / email / phone"
+                onSearch={(value) => {
+                  if (value !== prevSearch) {
+                    setSearch(value);
+                    setPrevSearch(value);
+                  }
+                }}
+                noDataText="No clients found"
               />
             </div>
           </main>
@@ -638,14 +660,14 @@ Duplicate: ${s.duplicate || 0}
       {ownerModal && selectedClient && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white p-5 rounded w-[350px]">
-            <h3 className="font-semibold mb-3">Change Owner</h3>
+            <h3 className="font-semibold mb-3">Change Member</h3>
 
             <select
               className="w-full border p-2 rounded"
               value={selectedOwner}
               onChange={(e) => setSelectedOwner(e.target.value)}
             >
-              <option value="">-- Select Owner --</option>
+              <option value="">-- Select Member --</option>
               {users.map((u) => (
                 <option key={u._id} value={u._id}>
                   {u.FullName}
@@ -661,6 +683,15 @@ Duplicate: ${s.duplicate || 0}
               <Button
                 disabled={!selectedOwner}
                 onClick={async () => {
+                  if (selectedOwner === selectedClient.assigned_to) {
+                    toast({
+                      title: "Invalid Action",
+                      description: "Can not change to the same owner again",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
                   const res = await ChangeClientOwner(tokens, {
                     id: selectedClient._id,
                     assigned_to: selectedOwner,
@@ -669,14 +700,14 @@ Duplicate: ${s.duplicate || 0}
                   if (res?.status) {
                     toast({
                       title: "Success",
-                      description: res.message,
+                      description: res.message || "Member changed successfully",
                     });
                     setOwnerModal(false);
-                    fetchCRMContacts(); // 🔥 refresh list
+                    fetchCRMContacts();
                   } else {
                     toast({
                       title: "Error",
-                      description: res?.message,
+                      description: res?.message || "Failed to change Member",
                       variant: "destructive",
                     });
                   }

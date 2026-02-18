@@ -14,6 +14,15 @@ import EditTemplate from "./EditTemplate";
 import ViewTemplate from "./ViewTemplate";
 import { Edit2, Eye, Trash2, View } from "lucide-react";
 import ConfirmAction from "../../../extraComponents/ConfirmAction";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+
+
 const Template = () => {
   const { toast } = useToast();
   const [data, setData] = useState([]);
@@ -155,40 +164,110 @@ const Template = () => {
       grow: 2,
     },
 
-    {
-      name: "Actions",
-      cell: (row) => (
-        <div className="flex gap-2">
-          <ConfirmAction
-            title="Edit Template?"
-            description="Are you sure you want to edit this template?"
-            confirmText="Edit"
-            cancelText="Cancel"
-            type="info"
-            onConfirm={() => {
-              setSelectedTemplate(row);
-              setEditOpen(true);
-            }}
-          >
-            <Edit2 className="h-4 w-4 text-blue-700 cursor-pointer" />
-          </ConfirmAction>
+    // {
+    //   name: "Actions",
+    //   cell: (row) => (
+    //     <div className="flex gap-2">
+    //       <ConfirmAction
+    //         title="Edit Template?"
+    //         description="Are you sure you want to edit this template?"
+    //         confirmText="Edit"
+    //         cancelText="Cancel"
+    //         type="info"
+    //         onConfirm={() => {
+    //           setSelectedTemplate(row);
+    //           setEditOpen(true);
+    //         }}
+    //       >
+    //         <Edit2 className="h-4 w-4 text-blue-700 cursor-pointer" />
+    //       </ConfirmAction>
 
+    //       <ConfirmAction
+    //         title="Delete Template?"
+    //         description="Are you want to delete this template?"
+    //         confirmText="Delete"
+    //         cancelText="Cancel"
+    //         type="error"
+    //         onConfirm={() => handleDelete(row._id)}
+    //       >
+    //         <Trash2 className="h-4 w-4 text-red-700" />
+    //       </ConfirmAction>
+    //       <button onClick={() => HandleView(row)}>
+    //         <Eye className="h-4 w-4 text-green-700" />
+    //       </button>
+    //     </div>
+    //   ),
+    // },
+  
+  
+  {
+  name: "Actions",
+  width: "120px",
+  cell: (row) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end">
+        {/* Edit */}
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedTemplate(row);
+            setEditOpen(true);
+          }}
+        >
+          Edit
+        </DropdownMenuItem>
+
+        {/* View */}
+        <DropdownMenuItem
+          onClick={() => {
+            setViewTemplate(row);
+            setViewOpen(true);
+          }}
+        >
+          View
+        </DropdownMenuItem>
+
+        {/* Change Status */}
+        <DropdownMenuItem>
+          <ConfirmAction
+            title="Change Status?"
+            description={`Do you want to ${
+              row.status ? "deactivate" : "activate"
+            } this template?`}
+            confirmText="Yes"
+            cancelText="No"
+            type="warning"
+            onConfirm={() => handleStatusToggle(row)}
+          >
+            Change Status
+          </ConfirmAction>
+        </DropdownMenuItem>
+
+        {/* Delete */}
+        <DropdownMenuItem className="text-destructive">
           <ConfirmAction
             title="Delete Template?"
-            description="Are you want to delete this template?"
+            description="This action cannot be undone."
             confirmText="Delete"
             cancelText="Cancel"
             type="error"
             onConfirm={() => handleDelete(row._id)}
           >
-            <Trash2 className="h-4 w-4 text-red-700" />
+            Delete
           </ConfirmAction>
-          <button onClick={() => HandleView(row)}>
-            <Eye className="h-4 w-4 text-green-700" />
-          </button>
-        </div>
-      ),
-    },
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ),
+  ignoreRowClick: true,
+},
+
+  
   ];
 
   const HandleAddTemplate = () => {

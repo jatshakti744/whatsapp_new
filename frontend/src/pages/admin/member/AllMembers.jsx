@@ -153,7 +153,7 @@ const AllMembers = () => {
         toast({
           title: "Success",
           description: `Member ${
-            newStatus === 1 ? "activated" : "deactivated"
+            newStatus == true ? "activated" : "deactivated"
           } successfully`,
         });
 
@@ -202,7 +202,7 @@ const AllMembers = () => {
       selector: (row) => row.UserName,
     },
     {
-      name: "Phone",
+      name: "Phone No",
       selector: (row) => row.PhoneNo,
     },
     {

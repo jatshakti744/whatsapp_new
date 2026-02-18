@@ -3,12 +3,12 @@ import { io } from "socket.io-client";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useUser } from "@/context/UserContext";
-
-const SOCKET_URL = "https://apiwhatsapp.tradestreet.in:1001";
+import * as config from "../utils/config";
 
 export default function SocketToast({ children }) {
   const socketRef = useRef(null);
   const { user } = useUser();
+  const SOCKET_URL = `${config.socket_url}`;
 
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
